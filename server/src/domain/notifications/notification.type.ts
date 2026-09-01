@@ -63,6 +63,7 @@ export interface AlertDiscordPayload {
 	color: number;
 	fields: DiscordEmbedField[];
 	timestamp: string;
+	url?: string;
 }
 
 /**

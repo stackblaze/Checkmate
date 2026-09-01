@@ -1,4 +1,6 @@
 const SERVICE_NAME = "DiscordProvider";
+import type { MonitorType } from "@/domain/monitors/monitor.type.js";
+import { supportsUptimeDetails } from "@/domain/monitors/monitor.type.js";
 import type { AlertDiscordPayload, DiscordEmbedField, Notification } from "@/domain/notifications/notification.type.js";
 import { NotificationProvider } from "@/domain/notifications/providers/INotificationProvider.js";
 import { getTestMessage } from "@/domain/notifications/providers/utils.js";
@@ -95,12 +97,20 @@ export class DiscordProvider extends NotificationProvider {
 			inline: true,
 		});
 
-		// Add monitor URL
-		fields.push({
-			name: "URL",
-			value: message.monitor.url,
-			inline: false,
-		});
+		const monitorUrl = this.monitorUrl(message);
+		if (monitorUrl) {
+			fields.push({
+				name: "View in Checkmate",
+				value: monitorUrl,
+				inline: false,
+			});
+		} else {
+			fields.push({
+				name: "URL",
+				value: message.monitor.url,
+				inline: false,
+			});
+		}
 
 		// Add threshold breaches if present
 		if (message.content.thresholds && message.content.thresholds.length > 0) {
@@ -131,6 +141,28 @@ export class DiscordProvider extends NotificationProvider {
 			color,
 			fields,
 			timestamp: message.content.timestamp.toISOString(),
+			...(monitorUrl ? { url: monitorUrl } : {}),
 		};
+	}
+
+	private monitorUrl(message: NotificationMessage): string | undefined {
+		const clientHost = message.clientHost?.trim();
+		if (!clientHost || clientHost === "Host not defined") {
+			return undefined;
+		}
+
+		if (message.monitor.type === "hardware") {
+			return `${clientHost}/infrastructure/${message.monitor.id}`;
+		}
+
+		if (message.monitor.type === "pagespeed") {
+			return `${clientHost}/pagespeed/${message.monitor.id}`;
+		}
+
+		if (supportsUptimeDetails(message.monitor.type as MonitorType)) {
+			return `${clientHost}/uptime/${message.monitor.id}`;
+		}
+
+		return undefined;
 	}
 }
