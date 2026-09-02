@@ -35,7 +35,8 @@ export const createApp = ({
 		cors({
 			origin: allowedOrigin,
 			methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-			allowedHeaders: ["Content-Type", "Authorization", "Accept-Language"],
+			allowedHeaders: ["Content-Type", "Authorization", "Accept-Language", "Accept", "MCP-Protocol-Version", "Mcp-Session-Id"],
+			exposedHeaders: ["Mcp-Session-Id", "MCP-Protocol-Version"],
 			credentials: true,
 		})
 	);

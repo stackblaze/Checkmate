@@ -47,6 +47,7 @@ mongodb:
 
 secrets:
   JWT_SECRET: change_me
+#  MCP_API_TOKEN: long-lived token for MCP clients (Cursor, Claude)
 #  REFRESH_TOKEN_SECRET: change_me
 #  SYSTEM_EMAIL_ADDRESS: test@example.com
 #  SYSTEM_EMAIL_PASSWORD: change_me

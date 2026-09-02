@@ -27,6 +27,9 @@ const envSchema = z.object({
 
 	// Feature flags
 	STATUS_PAGE_THEMES_ENABLED: booleanCoercion.default(true),
+
+	// Optional long-lived token for MCP clients (Cursor, Claude). JWT also works.
+	MCP_API_TOKEN: z.string().optional(),
 });
 
 export type ValidatedEnv = z.infer<typeof envSchema>;
