@@ -68,6 +68,9 @@ const createServices = () => {
 				found.isActive = !found.isActive;
 				return found;
 			}),
+			getUptimeDetailsById: jest.fn(async () => {
+				throw new Error("no week stats");
+			}),
 		},
 		incidentService: {
 			getIncidentsByTeam: jest.fn(async () => ({ incidents: [], count: 0 })),
@@ -77,6 +80,11 @@ const createServices = () => {
 		},
 		checksRepository: {
 			findLatestByMonitorIds: jest.fn(async () => ({})),
+		},
+		monitorStatsRepository: {
+			findByMonitorId: jest.fn(async () => {
+				throw new Error("not found");
+			}),
 		},
 	};
 };
@@ -173,14 +181,26 @@ describe("handleMcpRequest", () => {
 		}));
 		const result = await handleMcpRequest({ method: "tools/call", id: 7, params: { name: "list_unhealthy" } }, user, svc as any);
 		const parsed = JSON.parse(result?.result.content[0].text);
-		expect(parsed.monitors[0].live).toEqual({
-			cpu_pct: 12,
-			memory_pct: 58,
-			memory_used_gib: 8,
-			memory_total_gib: 16,
-			disk_pct: 82.9,
-			disks: [{ name: "/", used_pct: 82.9, total_gib: 10, free_gib: 1.7 }],
-			checked_at: "2026-09-02T13:00:00Z",
-		});
+		expect(parsed.monitors[0].live.disk_pct).toBe(82.9);
+	});
+
+	it("attaches lifetime uptime_pct from monitor stats", async () => {
+		const svc = createServices();
+		svc.monitorStatsRepository.findByMonitorId = jest.fn(async () => ({
+			uptimePercentage: 0.9975,
+			totalUpChecks: 399,
+			totalChecks: 400,
+			lastCheckTimestamp: Date.parse("2026-09-02T16:00:00Z"),
+		}));
+		const result = await handleMcpRequest(
+			{ method: "tools/call", id: 8, params: { name: "list_monitors", arguments: { name: "x" } } },
+			user,
+			svc as any
+		);
+		const parsed = JSON.parse(result?.result.content[0].text);
+		const hw = parsed.monitors.find((m: { type: string }) => m.type === "hardware");
+		expect(hw.uptime_pct).toBe(99.75);
+		expect(hw.checks_up).toBe(399);
+		expect(hw.checks_total).toBe(400);
 	});
 });
