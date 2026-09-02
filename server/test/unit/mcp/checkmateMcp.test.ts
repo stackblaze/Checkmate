@@ -121,6 +121,18 @@ describe("handleMcpRequest", () => {
 		const parsed = JSON.parse(result?.result.content[0].text);
 		expect(parsed.count).toBe(1);
 		expect(parsed.monitors[0].id).toBe("m1");
+		expect(parsed.monitors[0].tags).toEqual(["sfo"]);
+	});
+
+	it("treats type=infrastructure as hardware", async () => {
+		const result = await handleMcpRequest(
+			{ method: "tools/call", id: 6, params: { name: "list_monitors", arguments: { type: "infrastructure" } } },
+			user,
+			createServices() as any
+		);
+		const parsed = JSON.parse(result?.result.content[0].text);
+		expect(parsed.count).toBe(1);
+		expect(parsed.monitors[0].type).toBe("hardware");
 	});
 
 	it("does not toggle pause when already in the requested state", async () => {
