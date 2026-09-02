@@ -1,7 +1,9 @@
 import type { IMonitorService } from "@/domain/monitors/monitor.service.js";
 import type { IIncidentService } from "@/domain/incidents/incident.service.js";
 import type { ITagsService } from "@/domain/tags/tag.service.js";
+import type { IChecksRepository } from "@/domain/checks/check.repository.interface.js";
 import type { Monitor } from "@/domain/monitors/monitor.type.js";
+import type { Check } from "@/domain/checks/check.type.js";
 import type { User } from "@/domain/users/user.type.js";
 import type { DateRange } from "@/types/query.js";
 
@@ -18,6 +20,7 @@ export type McpServices = {
 	monitorService: IMonitorService;
 	incidentService: IIncidentService;
 	tagsService: ITagsService;
+	checksRepository: IChecksRepository;
 };
 
 const TYPE_ALIASES: Record<string, string> = {
@@ -53,7 +56,8 @@ const TOOLS = [
 	},
 	{
 		name: "get_monitor",
-		description: "Get one monitor by id or exact name. Secrets are never returned.",
+		description:
+			"Get one monitor by id or exact name. Hardware monitors include live cpu_pct, memory_pct, disk_pct (hottest disk) and per-disk usage from the latest check. Secrets are never returned.",
 		inputSchema: {
 			type: "object",
 			properties: {
@@ -64,7 +68,8 @@ const TOOLS = [
 	},
 	{
 		name: "list_unhealthy",
-		description: "Monitors that are down or threshold-breached.",
+		description:
+			"Monitors that are down or threshold-breached. Hardware monitors include live cpu_pct, memory_pct, disk_pct (hottest filesystem/datastore) and a disks[] breakdown from the latest check — not just alert thresholds.",
 		inputSchema: { type: "object", properties: {} },
 	},
 	{
@@ -124,6 +129,55 @@ const summarize = (m: Monitor, tagNames?: Map<string, string>) => ({
 const loadTagNames = async (teamId: string, svc: McpServices) => {
 	const tags = await svc.tagsService.getTagsByTeamId(teamId);
 	return new Map(tags.map((t) => [t.id, t.name]));
+};
+
+const toPct = (v?: number | null) => {
+	if (v == null || Number.isNaN(v)) {
+		return null;
+	}
+	return Math.round((v <= 1.5 ? v * 100 : v) * 10) / 10;
+};
+
+const toGiB = (bytes?: number | null) => {
+	if (bytes == null || bytes <= 0) {
+		return null;
+	}
+	return Math.round((bytes / 1024 ** 3) * 10) / 10;
+};
+
+const liveFromCheck = (c: Check) => {
+	const disks = (c.disk || []).map((d) => ({
+		name: d.mountpoint || d.device || "disk",
+		used_pct: toPct(d.usage_percent),
+		total_gib: toGiB(d.total_bytes),
+		free_gib: toGiB(d.free_bytes),
+	}));
+	const diskPcts = disks.map((d) => d.used_pct).filter((n): n is number => n != null);
+	return {
+		cpu_pct: toPct(c.cpu?.usage_percent),
+		memory_pct: toPct(c.memory?.usage_percent),
+		memory_used_gib: toGiB(c.memory?.used_bytes),
+		memory_total_gib: toGiB(c.memory?.total_bytes),
+		disk_pct: diskPcts.length ? Math.max(...diskPcts) : null,
+		disks,
+		checked_at: c.createdAt,
+	};
+};
+
+const withLiveMetrics = async (monitors: Monitor[], tagNames: Map<string, string>, svc: McpServices) => {
+	const rows = monitors.map((m) => summarize(m, tagNames));
+	const hwIds = monitors.filter((m) => m.type === "hardware").map((m) => m.id);
+	if (!hwIds.length) {
+		return rows;
+	}
+	const latest = await svc.checksRepository.findLatestByMonitorIds(hwIds, { limitPerMonitor: 1 });
+	return rows.map((row) => {
+		const check = latest[row.id]?.[0];
+		if (!check) {
+			return row;
+		}
+		return { ...row, live: liveFromCheck(check) };
+	});
 };
 
 const jsonResult = (id: JsonRpcId, result: unknown) => ({ jsonrpc: "2.0", id, result });
@@ -224,19 +278,20 @@ const callTool = async (name: string, args: Record<string, unknown>, teamId: str
 			}
 			monitors = monitors.filter((m) => (m.tags || []).includes(tag[0]));
 		}
-		return { count: monitors.length, monitors: monitors.map((m) => summarize(m, tagNames)) };
+	return { count: monitors.length, monitors: await withLiveMetrics(monitors, tagNames, svc) };
 	}
 
 	if (name === "get_monitor") {
 		const tagNames = await loadTagNames(teamId, svc);
 		const m = await resolveMonitor(teamId, svc, args.id as string | undefined, args.name as string | undefined);
-		return summarize(m, tagNames);
+		const [row] = await withLiveMetrics([m], tagNames, svc);
+		return row;
 	}
 
 	if (name === "list_unhealthy") {
 		const tagNames = await loadTagNames(teamId, svc);
 		const monitors = (await allMonitors(teamId, svc)).filter((m) => m.status === "down" || m.status === "breached");
-		return { count: monitors.length, monitors: monitors.map((m) => summarize(m, tagNames)) };
+		return { count: monitors.length, monitors: await withLiveMetrics(monitors, tagNames, svc) };
 	}
 
 	if (name === "get_summary") {

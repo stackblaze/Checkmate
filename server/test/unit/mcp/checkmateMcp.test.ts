@@ -75,6 +75,9 @@ const createServices = () => {
 		tagsService: {
 			getTagsByTeamId: jest.fn(async () => [{ id: "tag-sfo", teamId: "team-1", name: "sfo", color: "#000", createdAt: "", updatedAt: "" }]),
 		},
+		checksRepository: {
+			findLatestByMonitorIds: jest.fn(async () => ({})),
+		},
 	};
 };
 
@@ -150,5 +153,34 @@ describe("handleMcpRequest", () => {
 	it("returns 202-style null for initialized notifications", async () => {
 		const result = await handleMcpRequest({ method: "notifications/initialized" }, user, createServices() as any);
 		expect(result).toBeNull();
+	});
+
+	it("attaches live cpu/memory/disk from the latest hardware check", async () => {
+		const svc = createServices();
+		svc.monitorService.getMonitorsByTeamId = jest.fn(async () => [
+			makeMonitor({ id: "m1", status: "breached", diskAlertThreshold: 80 }),
+		]);
+		svc.checksRepository.findLatestByMonitorIds = jest.fn(async () => ({
+			m1: [
+				{
+					id: "c1",
+					createdAt: "2026-09-02T13:00:00Z",
+					cpu: { usage_percent: 0.12 },
+					memory: { usage_percent: 0.58, used_bytes: 8 * 1024 ** 3, total_bytes: 16 * 1024 ** 3 },
+					disk: [{ mountpoint: "/", usage_percent: 0.829, total_bytes: 10 * 1024 ** 3, free_bytes: 1.7 * 1024 ** 3 }],
+				},
+			],
+		}));
+		const result = await handleMcpRequest({ method: "tools/call", id: 7, params: { name: "list_unhealthy" } }, user, svc as any);
+		const parsed = JSON.parse(result?.result.content[0].text);
+		expect(parsed.monitors[0].live).toEqual({
+			cpu_pct: 12,
+			memory_pct: 58,
+			memory_used_gib: 8,
+			memory_total_gib: 16,
+			disk_pct: 82.9,
+			disks: [{ name: "/", used_pct: 82.9, total_gib: 10, free_gib: 1.7 }],
+			checked_at: "2026-09-02T13:00:00Z",
+		});
 	});
 });
