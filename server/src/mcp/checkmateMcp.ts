@@ -2,7 +2,9 @@ import type { IMonitorService } from "@/domain/monitors/monitor.service.js";
 import type { IIncidentService } from "@/domain/incidents/incident.service.js";
 import type { ITagsService } from "@/domain/tags/tag.service.js";
 import type { IChecksRepository } from "@/domain/checks/check.repository.interface.js";
+import type { IMonitorStatsRepository } from "@/domain/monitor-stats/monitor-stats.repository.interface.js";
 import type { Monitor } from "@/domain/monitors/monitor.type.js";
+import { supportsUptimeDetails } from "@/domain/monitors/monitor.type.js";
 import type { Check } from "@/domain/checks/check.type.js";
 import type { User } from "@/domain/users/user.type.js";
 import type { DateRange } from "@/types/query.js";
@@ -21,6 +23,7 @@ export type McpServices = {
 	incidentService: IIncidentService;
 	tagsService: ITagsService;
 	checksRepository: IChecksRepository;
+	monitorStatsRepository: IMonitorStatsRepository;
 };
 
 const TYPE_ALIASES: Record<string, string> = {
@@ -36,7 +39,7 @@ const TOOLS = [
 	{
 		name: "list_monitors",
 		description:
-			'List Checkmate monitors, healthy or unhealthy. Hardware monitors include live cpu_pct, memory_pct, disk_pct (hottest disk) and disks[] from the latest check — use this when asked for usage of up/healthy hosts, not only breaches. In the Checkmate UI, "Infrastructure" monitors are type=hardware (VMware ESXi hosts, Kamaji nodes, k3s VMs). Product website/API uptime (Cal, Plane, CRM, Dashboard, Marketing Site, LibreDesk) is type=http tagged platform — that is NOT Infrastructure. For hosts/nodes pass type=hardware (aliases: infrastructure, infra). For app uptime pass tag=platform or type=http.',
+			'List Checkmate monitors, healthy or unhealthy. Each monitor includes uptime_pct (lifetime) and HTTP monitors include uptime_week_pct. When asked for uptime, report those percentages — status is only the current state (up/down/breached). Hardware also includes live cpu/memory/disk. Infrastructure = type=hardware. Kamaji east = tag kamaji + us-east-1. Product apps = tag platform.',
 		inputSchema: {
 			type: "object",
 			properties: {
@@ -57,7 +60,7 @@ const TOOLS = [
 	{
 		name: "get_monitor",
 		description:
-			"Get one monitor by id or exact name. Hardware monitors include live cpu_pct, memory_pct, disk_pct (hottest disk) and per-disk usage from the latest check. Secrets are never returned.",
+			"Get one monitor by id or exact name. Includes uptime_pct (lifetime). Hardware also includes live cpu/memory/disk. Secrets are never returned.",
 		inputSchema: {
 			type: "object",
 			properties: {
@@ -69,7 +72,7 @@ const TOOLS = [
 	{
 		name: "list_unhealthy",
 		description:
-			"Monitors that are down or threshold-breached. Hardware monitors include live cpu_pct, memory_pct, disk_pct (hottest filesystem/datastore) and a disks[] breakdown from the latest check — not just alert thresholds.",
+			"Monitors that are down or threshold-breached. Includes uptime_pct (lifetime) and, for hardware, live cpu_pct/memory_pct/disk_pct. status is current state; uptime_pct is historical.",
 		inputSchema: { type: "object", properties: {} },
 	},
 	{
@@ -164,8 +167,51 @@ const liveFromCheck = (c: Check) => {
 	};
 };
 
-const withLiveMetrics = async (monitors: Monitor[], tagNames: Map<string, string>, svc: McpServices) => {
-	const rows = monitors.map((m) => summarize(m, tagNames));
+const toUptimePct = (v?: number | null) => {
+	if (v == null || Number.isNaN(v)) {
+		return null;
+	}
+	return Math.round((v <= 1.5 ? v * 100 : v) * 100) / 100;
+};
+
+const withLiveMetrics = async (monitors: Monitor[], tagNames: Map<string, string>, svc: McpServices, teamId: string) => {
+	let rows = monitors.map((m) => summarize(m, tagNames));
+	const stats = await Promise.all(
+		monitors.map(async (m) => {
+			try {
+				return await svc.monitorStatsRepository.findByMonitorId(m.id);
+			} catch {
+				return null;
+			}
+		})
+	);
+	const weekPct = await Promise.all(
+		monitors.map(async (m) => {
+			if (!supportsUptimeDetails(m.type)) {
+				return null;
+			}
+			try {
+				const details = await svc.monitorService.getUptimeDetailsById({ teamId, monitorId: m.id, dateRange: "week" });
+				return toUptimePct(details.monitorData.groupedUptimePercentage);
+			} catch {
+				return null;
+			}
+		})
+	);
+	rows = rows.map((row, i) => {
+		const st = stats[i];
+		const extra: Record<string, unknown> = {};
+		if (st) {
+			extra.uptime_pct = toUptimePct(st.uptimePercentage);
+			extra.checks_up = st.totalUpChecks;
+			extra.checks_total = st.totalChecks;
+			extra.last_check_at = st.lastCheckTimestamp ? new Date(st.lastCheckTimestamp).toISOString() : null;
+		}
+		if (weekPct[i] != null) {
+			extra.uptime_week_pct = weekPct[i];
+		}
+		return Object.keys(extra).length ? { ...row, ...extra } : row;
+	});
 	const hwIds = monitors.filter((m) => m.type === "hardware").map((m) => m.id);
 	if (!hwIds.length) {
 		return rows;
@@ -278,20 +324,20 @@ const callTool = async (name: string, args: Record<string, unknown>, teamId: str
 			}
 			monitors = monitors.filter((m) => (m.tags || []).includes(tag[0]));
 		}
-	return { count: monitors.length, monitors: await withLiveMetrics(monitors, tagNames, svc) };
+		return { count: monitors.length, monitors: await withLiveMetrics(monitors, tagNames, svc, teamId) };
 	}
 
 	if (name === "get_monitor") {
 		const tagNames = await loadTagNames(teamId, svc);
 		const m = await resolveMonitor(teamId, svc, args.id as string | undefined, args.name as string | undefined);
-		const [row] = await withLiveMetrics([m], tagNames, svc);
+		const [row] = await withLiveMetrics([m], tagNames, svc, teamId);
 		return row;
 	}
 
 	if (name === "list_unhealthy") {
 		const tagNames = await loadTagNames(teamId, svc);
 		const monitors = (await allMonitors(teamId, svc)).filter((m) => m.status === "down" || m.status === "breached");
-		return { count: monitors.length, monitors: await withLiveMetrics(monitors, tagNames, svc) };
+		return { count: monitors.length, monitors: await withLiveMetrics(monitors, tagNames, svc, teamId) };
 	}
 
 	if (name === "get_summary") {
