@@ -64,6 +64,7 @@ export const setupRoutes = (app: Application, controllers: InitializedController
 				monitorService: services.monitorService,
 				incidentService: services.incidentService,
 				tagsService: services.tagsService,
+				checksRepository: services.checksRepository,
 			},
 		})
 	);
