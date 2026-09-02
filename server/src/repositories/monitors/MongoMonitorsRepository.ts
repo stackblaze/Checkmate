@@ -6,6 +6,12 @@ import type { IMonitorsRepository, TeamQueryConfig, SummaryConfig } from "./IMon
 import { MongoBulkWriteError } from "mongodb";
 import { AppError } from "@/utils/AppError.js";
 
+/** Multi-tag filters are AND: the monitor must have every selected tag. */
+const tagsMatch = (tags: string | string[]) => {
+	const ids = (Array.isArray(tags) ? tags : [tags]).map((tag) => new mongoose.Types.ObjectId(tag));
+	return { $all: ids };
+};
+
 class MongoMonitorsRepository implements IMonitorsRepository {
 	create = async (monitor: Monitor, teamId: string, userId: string) => {
 		const monitorModel = new MonitorModel({ ...monitor, teamId, userId });
@@ -55,7 +61,7 @@ class MongoMonitorsRepository implements IMonitorsRepository {
 		}
 
 		if (tags !== undefined) {
-			query.tags = Array.isArray(tags) ? { $in: tags } : tags;
+			query.tags = tagsMatch(tags);
 		}
 
 		if (filter !== undefined) {
@@ -167,7 +173,7 @@ class MongoMonitorsRepository implements IMonitorsRepository {
 		}
 
 		if (tags !== undefined) {
-			query.tags = Array.isArray(tags) ? { $in: tags } : tags;
+			query.tags = tagsMatch(tags);
 		}
 
 		const count = await MonitorModel.countDocuments(query);
@@ -303,8 +309,7 @@ class MongoMonitorsRepository implements IMonitorsRepository {
 			match.type = Array.isArray(config.type) ? { $in: config.type } : config.type;
 		}
 		if (config?.tags !== undefined) {
-			const tagIds = (Array.isArray(config.tags) ? config.tags : [config.tags]).map((tag) => new mongoose.Types.ObjectId(tag));
-			match.tags = { $in: tagIds };
+			match.tags = tagsMatch(config.tags);
 		}
 		const pipeline = [
 			{ $match: match },
