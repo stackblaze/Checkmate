@@ -36,7 +36,7 @@ const TOOLS = [
 	{
 		name: "list_monitors",
 		description:
-			'List Checkmate monitors. In the Checkmate UI, "Infrastructure" monitors are type=hardware (VMware ESXi hosts, Kamaji nodes, k3s VMs). Product website/API uptime (Cal, Plane, CRM, Dashboard, Marketing Site, LibreDesk) is type=http tagged platform — that is NOT Infrastructure. For hosts/nodes pass type=hardware (aliases: infrastructure, infra). For app uptime pass tag=platform or type=http.',
+			'List Checkmate monitors, healthy or unhealthy. Hardware monitors include live cpu_pct, memory_pct, disk_pct (hottest disk) and disks[] from the latest check — use this when asked for usage of up/healthy hosts, not only breaches. In the Checkmate UI, "Infrastructure" monitors are type=hardware (VMware ESXi hosts, Kamaji nodes, k3s VMs). Product website/API uptime (Cal, Plane, CRM, Dashboard, Marketing Site, LibreDesk) is type=http tagged platform — that is NOT Infrastructure. For hosts/nodes pass type=hardware (aliases: infrastructure, infra). For app uptime pass tag=platform or type=http.',
 		inputSchema: {
 			type: "object",
 			properties: {
