@@ -96,6 +96,7 @@ worker:
 
 secrets:
   JWT_SECRET: change_me
+#  MCP_API_TOKEN: long-lived token for MCP clients (Cursor, Claude)
   DB_CONNECTION_STRING: mongodb://checkmate-mongodb:27017/uptime_db
   CLIENT_HOST: change_me
   NODE_ENV: production
