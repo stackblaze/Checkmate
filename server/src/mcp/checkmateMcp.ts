@@ -20,16 +20,33 @@ export type McpServices = {
 	tagsService: ITagsService;
 };
 
+const TYPE_ALIASES: Record<string, string> = {
+	infrastructure: "hardware",
+	infra: "hardware",
+	host: "hardware",
+	hosts: "hardware",
+	node: "hardware",
+	nodes: "hardware",
+};
+
 const TOOLS = [
 	{
 		name: "list_monitors",
-		description: "List Checkmate monitors. Filter by status (up, down, breached, paused, initializing), type, tag name, or name substring.",
+		description:
+			'List Checkmate monitors. In the Checkmate UI, "Infrastructure" monitors are type=hardware (VMware ESXi hosts, Kamaji nodes, k3s VMs). Product website/API uptime (Cal, Plane, CRM, Dashboard, Marketing Site, LibreDesk) is type=http tagged platform — that is NOT Infrastructure. For hosts/nodes pass type=hardware (aliases: infrastructure, infra). For app uptime pass tag=platform or type=http.',
 		inputSchema: {
 			type: "object",
 			properties: {
 				status: { type: "string", description: "up | down | breached | paused | initializing | maintenance" },
-				type: { type: "string", description: "http | hardware | ping | port | docker | pagespeed | …" },
-				tag: { type: "string", description: "Tag name (e.g. kamaji, tenant, sfo)" },
+				type: {
+					type: "string",
+					description: "http | hardware | port | ping | …  Also accepts infrastructure/infra as aliases for hardware.",
+				},
+				tag: {
+					type: "string",
+					description:
+						"Tag name. Hardware: kamaji, vmware, k3s, leaseweb, tenant, us-east-1, us-west-1, us-central-1, sfo. HTTP apps: platform.",
+				},
 				search: { type: "string", description: "Case-insensitive name/url substring" },
 			},
 		},
@@ -52,12 +69,14 @@ const TOOLS = [
 	},
 	{
 		name: "get_summary",
-		description: "Counts of monitors by status and type.",
+		description:
+			"Counts of monitors by status and type. hardware = Checkmate Infrastructure (hosts/nodes). http = website/API uptime. platform-tagged HTTP monitors are product apps, not hosts.",
 		inputSchema: { type: "object", properties: {} },
 	},
 	{
 		name: "list_tags",
-		description: "List Checkmate tags for this team.",
+		description:
+			"List Checkmate tags. platform = product HTTP apps. kamaji/vmware/k3s/leaseweb/tenant + region tags = infrastructure hardware.",
 		inputSchema: { type: "object", properties: {} },
 	},
 	{
@@ -86,14 +105,14 @@ const TOOLS = [
 	},
 ] as const;
 
-const summarize = (m: Monitor) => ({
+const summarize = (m: Monitor, tagNames?: Map<string, string>) => ({
 	id: m.id,
 	name: m.name,
 	type: m.type,
 	status: m.status,
 	url: m.url,
 	isActive: m.isActive,
-	tags: m.tags,
+	tags: (m.tags || []).map((id) => tagNames?.get(id) || id),
 	interval: m.interval,
 	cpuAlertThreshold: m.cpuAlertThreshold,
 	memoryAlertThreshold: m.memoryAlertThreshold,
@@ -101,6 +120,11 @@ const summarize = (m: Monitor) => ({
 	tempAlertThreshold: m.tempAlertThreshold,
 	diskAlertCounter: m.diskAlertCounter,
 });
+
+const loadTagNames = async (teamId: string, svc: McpServices) => {
+	const tags = await svc.tagsService.getTagsByTeamId(teamId);
+	return new Map(tags.map((t) => [t.id, t.name]));
+};
 
 const jsonResult = (id: JsonRpcId, result: unknown) => ({ jsonrpc: "2.0", id, result });
 const jsonError = (id: JsonRpcId, code: number, message: string) => ({ jsonrpc: "2.0", id, error: { code, message } });
@@ -174,38 +198,45 @@ const resolveMonitor = async (teamId: string, svc: McpServices, id?: string, nam
 const callTool = async (name: string, args: Record<string, unknown>, teamId: string, svc: McpServices) => {
 	if (name === "list_monitors") {
 		let monitors = await allMonitors(teamId, svc);
+		const tagNames = await loadTagNames(teamId, svc);
 		const status = typeof args.status === "string" ? args.status : "";
-		const type = typeof args.type === "string" ? args.type : "";
+		let type = typeof args.type === "string" ? args.type.toLowerCase() : "";
+		type = TYPE_ALIASES[type] || type;
 		const search = typeof args.search === "string" ? args.search.toLowerCase() : "";
 		const tagName = typeof args.tag === "string" ? args.tag.toLowerCase() : "";
+		const searchMeansHardware = search === "infrastructure" || search === "infra" || search === "infrastructure monitors";
+		if (!type && searchMeansHardware) {
+			type = "hardware";
+		}
 		if (status) {
 			monitors = monitors.filter((m) => m.status === status);
 		}
 		if (type) {
 			monitors = monitors.filter((m) => m.type === type);
 		}
-		if (search) {
+		if (search && !searchMeansHardware) {
 			monitors = monitors.filter((m) => m.name.toLowerCase().includes(search) || (m.url || "").toLowerCase().includes(search));
 		}
 		if (tagName) {
-			const tags = await svc.tagsService.getTagsByTeamId(teamId);
-			const tag = tags.find((t) => t.name.toLowerCase() === tagName);
+			const tag = [...tagNames.entries()].find(([, n]) => n.toLowerCase() === tagName);
 			if (!tag) {
 				return { count: 0, monitors: [], note: `No tag named ${tagName}` };
 			}
-			monitors = monitors.filter((m) => (m.tags || []).includes(tag.id));
+			monitors = monitors.filter((m) => (m.tags || []).includes(tag[0]));
 		}
-		return { count: monitors.length, monitors: monitors.map(summarize) };
+		return { count: monitors.length, monitors: monitors.map((m) => summarize(m, tagNames)) };
 	}
 
 	if (name === "get_monitor") {
+		const tagNames = await loadTagNames(teamId, svc);
 		const m = await resolveMonitor(teamId, svc, args.id as string | undefined, args.name as string | undefined);
-		return summarize(m);
+		return summarize(m, tagNames);
 	}
 
 	if (name === "list_unhealthy") {
+		const tagNames = await loadTagNames(teamId, svc);
 		const monitors = (await allMonitors(teamId, svc)).filter((m) => m.status === "down" || m.status === "breached");
-		return { count: monitors.length, monitors: monitors.map(summarize) };
+		return { count: monitors.length, monitors: monitors.map((m) => summarize(m, tagNames)) };
 	}
 
 	if (name === "get_summary") {
@@ -216,7 +247,12 @@ const callTool = async (name: string, args: Record<string, unknown>, teamId: str
 			byStatus[m.status] = (byStatus[m.status] || 0) + 1;
 			byType[m.type] = (byType[m.type] || 0) + 1;
 		}
-		return { total: monitors.length, byStatus, byType };
+		return {
+			total: monitors.length,
+			byStatus,
+			byType,
+			note: "hardware = Checkmate Infrastructure (hosts/nodes). http = website/API uptime. tag platform = product apps, not hosts.",
+		};
 	}
 
 	if (name === "list_tags") {
