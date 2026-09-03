@@ -199,6 +199,45 @@ const editorial: ThemeVariants = {
 	},
 };
 
+const stackblaze: ThemeVariants = {
+	light: {
+		bg: "#f4f4f5",
+		surface: "#ffffff",
+		border: "#e4e4e7",
+		text: "#18181b",
+		textMuted: "#71717a",
+		up: "#22c55e",
+		upStrong: "#16a34a",
+		upSoft: "#dcfce7",
+		degraded: "#eab308",
+		degradedSoft: "#fef9c3",
+		down: "#ef4444",
+		downSoft: "#fee2e2",
+		warn: "#eab308",
+		warnSoft: "#fef9c3",
+		radius: "6px",
+		fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+	},
+	dark: {
+		bg: "#09090b",
+		surface: "#18181b",
+		border: "#27272a",
+		text: "#fafafa",
+		textMuted: "#a1a1aa",
+		up: "#22c55e",
+		upStrong: "#4ade80",
+		upSoft: "rgba(34,197,94,0.16)",
+		degraded: "#eab308",
+		degradedSoft: "rgba(234,179,8,0.18)",
+		down: "#ef4444",
+		downSoft: "rgba(239,68,68,0.18)",
+		warn: "#eab308",
+		warnSoft: "rgba(234,179,8,0.18)",
+		radius: "6px",
+		fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+	},
+};
+
 const minimal: ThemeVariants = {
 	light: {
 		bg: "#ffffff",
@@ -242,6 +281,7 @@ export const themeTokens: Record<StatusPageTheme, ThemeVariants> = {
 	bold,
 	editorial,
 	minimal,
+	stackblaze,
 };
 
 // Interpolate between a theme's up and degraded colors by severity (0..1).

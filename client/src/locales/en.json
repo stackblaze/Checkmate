@@ -1705,6 +1705,30 @@
 					"addMonitor": "Add a monitor to get started"
 				}
 			},
+			"stackblaze": {
+				"subscribe": "Subscribe to updates",
+				"uptimeCaption": "Uptime over the past 90 days.",
+				"daysAgo": "90 days ago",
+				"today": "Today",
+				"uptimeLabel": "{{value}} uptime",
+				"status": {
+					"up": "Operational",
+					"down": "Major Outage",
+					"breached": "Degraded Performance",
+					"maintenance": "Maintenance",
+					"paused": "Paused",
+					"initializing": "Initializing"
+				},
+				"incident": {
+					"degradedOne": "Degraded performance of {{name}}",
+					"degradedMany": "Degraded performance",
+					"outageOne": "Major outage of {{name}}",
+					"outageMany": "Major outage",
+					"investigating": "Investigating",
+					"degradedBody": "We are investigating a service degradation affecting {{name}}",
+					"outageBody": "We are investigating an outage affecting {{name}}"
+				}
+			},
 			"footer": {
 				"poweredBy": "Powered by"
 			},
@@ -1798,6 +1822,10 @@
 						"minimal": {
 							"name": "Minimal",
 							"description": "Flat, focused, and compact with only the essentials."
+						},
+						"stackblaze": {
+							"name": "Stackblaze",
+							"description": "Matches status.cursor.com — subscribe button, incident banner, and 90-day uptime bars."
 						}
 					}
 				},

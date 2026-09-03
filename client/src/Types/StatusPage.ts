@@ -16,6 +16,7 @@ export const STATUS_PAGE_THEMES = [
 	"bold",
 	"editorial",
 	"minimal",
+	"stackblaze",
 ] as const;
 export type StatusPageTheme = (typeof STATUS_PAGE_THEMES)[number];
 export const DEFAULT_STATUS_PAGE_THEME: StatusPageTheme = "refined";

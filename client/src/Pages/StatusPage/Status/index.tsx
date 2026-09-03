@@ -46,8 +46,11 @@ import { editorialStyles } from "@/Pages/StatusPage/Status/themes/editorial/styl
 import { EditorialHeader } from "@/Pages/StatusPage/Status/themes/editorial/EditorialHeader";
 import { EditorialHero } from "@/Pages/StatusPage/Status/themes/editorial/EditorialHero";
 import { minimalStyles } from "@/Pages/StatusPage/Status/themes/minimal/styles";
+import { StackblazeStatusPage } from "@/Pages/StatusPage/Status/themes/stackblaze/StackblazeStatusPage";
 
-const THEME_CONFIGS: Record<StatusPageTheme, ThemeConfig<any>> = {
+type BuiltInTheme = Exclude<StatusPageTheme, "stackblaze">;
+
+const THEME_CONFIGS: Record<BuiltInTheme, ThemeConfig<any>> = {
 	refined: {
 		createStyles: refinedStyles,
 		HeaderSlot: RefinedHeader,
@@ -150,9 +153,10 @@ const StatusPageView = () => {
 		);
 	}
 
+	const resolvedTheme = resolveStatusPageTheme(statusPage.theme);
+
 	// Public route: render directly on the viewport, themed background covers everything.
 	if (isPublic) {
-		const themeConfig = THEME_CONFIGS[resolveStatusPageTheme(statusPage.theme)];
 		const customCss =
 			statusPage.customCSS && !cssReferencesExternalResource(statusPage.customCSS)
 				? statusPage.customCSS
@@ -166,15 +170,25 @@ const StatusPageView = () => {
 				paintBody
 			>
 				{customCss && <style>{customCss}</style>}
-				<BaseStatusPage
-					statusPage={statusPage}
-					monitors={monitors}
-					config={themeConfig}
-					range={range}
-					onRangeChange={onRangeChange}
-					bucketTimezone={data.bucketTimezone ?? "Etc/UTC"}
-					checkTTLDays={data.checkTTLDays}
-				/>
+				{resolvedTheme === "stackblaze" ? (
+					<StackblazeStatusPage
+						statusPage={statusPage}
+						monitors={monitors}
+						range={range}
+						onRangeChange={onRangeChange}
+						bucketTimezone={data.bucketTimezone ?? "Etc/UTC"}
+					/>
+				) : (
+					<BaseStatusPage
+						statusPage={statusPage}
+						monitors={monitors}
+						config={THEME_CONFIGS[resolvedTheme]}
+						range={range}
+						onRangeChange={onRangeChange}
+						bucketTimezone={data.bucketTimezone ?? "Etc/UTC"}
+						checkTTLDays={data.checkTTLDays}
+					/>
+				)}
 			</StatusPageThemeProvider>
 		);
 	}
