@@ -79,7 +79,7 @@ const createServices = () => {
 			getTagsByTeamId: jest.fn(async () => [{ id: "tag-sfo", teamId: "team-1", name: "sfo", color: "#000", createdAt: "", updatedAt: "" }]),
 		},
 		checksRepository: {
-			findLatestByMonitorIds: jest.fn(async () => ({})),
+			findByMonitorId: jest.fn(async () => ({ checksCount: 0, checks: [] })),
 		},
 		monitorStatsRepository: {
 			findByMonitorId: jest.fn(async () => {
@@ -165,11 +165,10 @@ describe("handleMcpRequest", () => {
 
 	it("attaches live cpu/memory/disk from the latest hardware check", async () => {
 		const svc = createServices();
-		svc.monitorService.getMonitorsByTeamId = jest.fn(async () => [
-			makeMonitor({ id: "m1", status: "breached", diskAlertThreshold: 80 }),
-		]);
-		svc.checksRepository.findLatestByMonitorIds = jest.fn(async () => ({
-			m1: [
+		svc.monitorService.getMonitorsByTeamId = jest.fn(async () => [makeMonitor({ id: "m1", status: "breached", diskAlertThreshold: 80 })]);
+		svc.checksRepository.findByMonitorId = jest.fn(async () => ({
+			checksCount: 1,
+			checks: [
 				{
 					id: "c1",
 					createdAt: "2026-09-02T13:00:00Z",

@@ -39,7 +39,7 @@ const TOOLS = [
 	{
 		name: "list_monitors",
 		description:
-			'List Checkmate monitors, healthy or unhealthy. Each monitor includes uptime_pct (lifetime) and HTTP monitors include uptime_week_pct. When asked for uptime, report those percentages — status is only the current state (up/down/breached). Hardware also includes live cpu/memory/disk. Infrastructure = type=hardware. Kamaji east = tag kamaji + us-east-1. Product apps = tag platform.',
+			"List Checkmate monitors, healthy or unhealthy. Each monitor includes uptime_pct (lifetime) and HTTP monitors include uptime_week_pct. When asked for uptime, report those percentages — status is only the current state (up/down/breached). Hardware also includes live cpu/memory/disk. Infrastructure = type=hardware. Kamaji east = tag kamaji + us-east-1. Product apps = tag platform.",
 		inputSchema: {
 			type: "object",
 			properties: {
@@ -50,8 +50,7 @@ const TOOLS = [
 				},
 				tag: {
 					type: "string",
-					description:
-						"Tag name. Hardware: kamaji, vmware, k3s, leaseweb, tenant, us-east-1, us-west-1, us-central-1, sfo. HTTP apps: platform.",
+					description: "Tag name. Hardware: kamaji, vmware, k3s, leaseweb, tenant, us-east-1, us-west-1, us-central-1, sfo. HTTP apps: platform.",
 				},
 				search: { type: "string", description: "Case-insensitive name/url substring" },
 			},
@@ -83,8 +82,7 @@ const TOOLS = [
 	},
 	{
 		name: "list_tags",
-		description:
-			"List Checkmate tags. platform = product HTTP apps. kamaji/vmware/k3s/leaseweb/tenant + region tags = infrastructure hardware.",
+		description: "List Checkmate tags. platform = product HTTP apps. kamaji/vmware/k3s/leaseweb/tenant + region tags = infrastructure hardware.",
 		inputSchema: { type: "object", properties: {} },
 	},
 	{
@@ -216,9 +214,17 @@ const withLiveMetrics = async (monitors: Monitor[], tagNames: Map<string, string
 	if (!hwIds.length) {
 		return rows;
 	}
-	const latest = await svc.checksRepository.findLatestByMonitorIds(hwIds, { limitPerMonitor: 1 });
+	// Latest check per hardware monitor (last 24h), one query each — develop's
+	// checks repository has no batched findLatestByMonitorIds anymore.
+	const latestList = await Promise.all(
+		hwIds.map(async (id) => {
+			const res = await svc.checksRepository.findByMonitorId(id, "desc", "day", 0, 1, undefined);
+			return [id, res.checks[0]] as const;
+		})
+	);
+	const latest = new Map<string, Check | undefined>(latestList);
 	return rows.map((row) => {
-		const check = latest[row.id]?.[0];
+		const check = latest.get(row.id);
 		if (!check) {
 			return row;
 		}
