@@ -175,6 +175,7 @@
 				"uptime": "稼働時間",
 				"pagespeed": "ページ速度",
 				"infrastructure": "インフラストラクチャ",
+				"kubernetes": "Kubernetes",
 				"notifications": "通知",
 				"checks": "チェック",
 				"incidents": "インシデント",

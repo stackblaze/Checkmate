@@ -205,6 +205,7 @@
 				"pagespeed": "Pagespeed",
 				"infrastructure": "Infrastructure",
 				"docker": "Docker",
+				"kubernetes": "Kubernetes",
 				"notifications": "Notifications",
 				"tags": "Tags",
 				"proxies": "Proxies",
@@ -932,6 +933,52 @@
 			"header": {
 				"title": "Incidents",
 				"description": "When monitors go down or recover, incidents appear here with timing, monitor details and resolution history."
+			}
+		},
+		"kubernetes": {
+			"header": {
+				"title": "Kubernetes clusters",
+				"description": "Control plane, nodes, and deployments grouped by region. Built from Kamaji and k3s monitors."
+			},
+			"fallback": {
+				"title": "No Kubernetes clusters yet",
+				"description": "Clusters appear here when Kamaji or k3s monitors exist (for example names like kamaji-us-east-1 · Control Plane).",
+				"actionButton": ""
+			},
+			"filters": {
+				"search": "Search clusters or regions..."
+			},
+			"emptySearch": "No clusters match that search.",
+			"notFound": "That cluster is not in the current monitor list.",
+			"back": "Kubernetes",
+			"hostedOn": "Hosted on {{cluster}}",
+			"regionCount_one": "{{count}} cluster",
+			"regionCount_other": "{{count}} clusters",
+			"empty": {
+				"controlPlane": "No control-plane monitor yet",
+				"nodes": "No node monitors yet",
+				"deployments": "No deployment monitors yet"
+			},
+			"kind": {
+				"management": "Management",
+				"tenant": "Tenant",
+				"standalone": "Cluster"
+			},
+			"regions": {
+				"other": "Other"
+			},
+			"sections": {
+				"controlPlane": "Control plane",
+				"nodes": "Nodes",
+				"deployments": "Deployments"
+			},
+			"table": {
+				"headers": {
+					"kind": "Kind",
+					"controlPlane": "Control plane",
+					"nodes": "Nodes",
+					"deployments": "Deployments"
+				}
 			}
 		},
 		"docker": {

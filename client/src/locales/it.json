@@ -186,6 +186,7 @@
 				"uptime": "Uptime",
 				"pagespeed": "Pagespeed",
 				"infrastructure": "Infrastruttura",
+				"kubernetes": "Kubernetes",
 				"notifications": "Notifiche",
 				"tags": "Tag",
 				"checks": "Verifiche",

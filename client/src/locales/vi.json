@@ -175,6 +175,7 @@
 				"uptime": "Thời gian hoạt động",
 				"pagespeed": "Pagespeed",
 				"infrastructure": "Hạ tầng",
+				"kubernetes": "Kubernetes",
 				"notifications": "Thông báo",
 				"checks": "Kiểm tra",
 				"incidents": "Sự cố",

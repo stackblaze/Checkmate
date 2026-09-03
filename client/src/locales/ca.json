@@ -183,6 +183,7 @@
 				"uptime": "Temps en línia",
 				"pagespeed": "Velocitat de pàgina",
 				"infrastructure": "Infraestructura",
+				"kubernetes": "Kubernetes",
 				"notifications": "Notificacions",
 				"checks": "Comprovacions",
 				"incidents": "Incidents",

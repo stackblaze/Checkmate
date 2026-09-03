@@ -20,6 +20,7 @@ import {
 	Tag,
 	Waypoints,
 	Container,
+	Boxes,
 } from "lucide-react";
 export const getMenu = (t: Function) => {
 	return [
@@ -45,6 +46,11 @@ export const getMenu = (t: Function) => {
 					name: t("components.sidebar.menu.docker"),
 					path: "docker",
 					icon: <Icon icon={Container} />,
+				},
+				{
+					name: t("components.sidebar.menu.kubernetes"),
+					path: "kubernetes",
+					icon: <Icon icon={Boxes} />,
 				},
 			],
 		},

@@ -175,6 +175,7 @@
 				"uptime": "Käytettävyys",
 				"pagespeed": "Pagespeed",
 				"infrastructure": "Infrastruktuuri",
+				"kubernetes": "Kubernetes",
 				"notifications": "Ilmoitukset",
 				"checks": "Tarkistukset",
 				"incidents": "Häiriöt",

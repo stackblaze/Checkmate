@@ -175,6 +175,7 @@
 				"uptime": "上线时间",
 				"pagespeed": "页面速度",
 				"infrastructure": "基础设施",
+				"kubernetes": "Kubernetes",
 				"notifications": "通知",
 				"checks": "检查",
 				"incidents": "事件",

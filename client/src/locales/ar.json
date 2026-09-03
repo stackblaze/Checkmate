@@ -175,6 +175,7 @@
 				"uptime": "وقت التشغيل",
 				"pagespeed": "Pagespeed",
 				"infrastructure": "البنية التحتية",
+				"kubernetes": "Kubernetes",
 				"notifications": "الإشعارات",
 				"checks": "الفحوصات",
 				"incidents": "الحوادث",

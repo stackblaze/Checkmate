@@ -25,6 +25,10 @@ import Docker from "@/Pages/Docker/Monitors";
 import DockerHostDetails from "@/Pages/Docker/HostDetails";
 import DockerDetails from "@/Pages/Docker/Details";
 
+// Kubernetes
+import Kubernetes from "@/Pages/Kubernetes/Monitors";
+import KubernetesDetails from "@/Pages/Kubernetes/Details";
+
 // Checks
 import Checks from "@/Pages/Checks";
 
@@ -163,6 +167,14 @@ const Routes = () => {
 				<Route
 					path="docker/host/:monitorId"
 					element={<DockerHostDetails />}
+				/>
+				<Route
+					path="kubernetes"
+					element={<Kubernetes />}
+				/>
+				<Route
+					path="kubernetes/:clusterId"
+					element={<KubernetesDetails />}
 				/>
 				<Route
 					path="checks/:monitorId?"

@@ -175,6 +175,7 @@
 				"uptime": "Доступність",
 				"pagespeed": "Pagespeed",
 				"infrastructure": "Інфраструктура",
+				"kubernetes": "Kubernetes",
 				"notifications": "Сповіщення",
 				"checks": "Перевірки",
 				"incidents": "Інциденти",

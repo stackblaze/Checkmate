@@ -175,6 +175,7 @@
 				"uptime": "Dostupnost",
 				"pagespeed": "Pagespeed",
 				"infrastructure": "Infrastruktura",
+				"kubernetes": "Kubernetes",
 				"notifications": "Oznámení",
 				"checks": "Kontroly",
 				"incidents": "Incidenty",

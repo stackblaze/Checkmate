@@ -175,6 +175,7 @@
 				"uptime": "正常運行時間",
 				"pagespeed": "PageSpeed",
 				"infrastructure": "基礎架構",
+				"kubernetes": "Kubernetes",
 				"notifications": "通知",
 				"checks": "檢查",
 				"incidents": "事件",

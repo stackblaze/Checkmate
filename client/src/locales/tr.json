@@ -175,6 +175,7 @@
 				"uptime": "Çalışma süresi",
 				"pagespeed": "Sayfa hızı",
 				"infrastructure": "Altyapı",
+				"kubernetes": "Kubernetes",
 				"notifications": "Bildirimler",
 				"checks": "Kontroller",
 				"incidents": "Olaylar",

@@ -175,6 +175,7 @@
 				"uptime": "ความพร้อมใช้งาน",
 				"pagespeed": "ความเร็วหน้าเว็บ",
 				"infrastructure": "โครงสร้างพื้นฐาน",
+				"kubernetes": "Kubernetes",
 				"notifications": "การแจ้งเตือน",
 				"checks": "การตรวจสอบ",
 				"incidents": "เหตุการณ์",

@@ -175,6 +175,7 @@
 				"uptime": "Temps en ligne",
 				"pagespeed": "Vitesse",
 				"infrastructure": "Infrastructure",
+				"kubernetes": "Kubernetes",
 				"notifications": "Notifications",
 				"checks": "Vérifications",
 				"incidents": "Incidents",

@@ -207,6 +207,7 @@
 				"checks": "Kontrole",
 				"incidents": "Incydenty",
 				"infrastructure": "Infrastruktura",
+				"kubernetes": "Kubernetes",
 				"logs": "Dzienniki",
 				"maintenance": "Konserwacja",
 				"notifications": "Powiadomienia",

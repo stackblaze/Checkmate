@@ -175,6 +175,7 @@
 				"uptime": "Аптайм",
 				"pagespeed": "Pagespeed",
 				"infrastructure": "Инфраструктура",
+				"kubernetes": "Kubernetes",
 				"notifications": "Уведомления",
 				"checks": "Проверки",
 				"incidents": "Инциденты",
