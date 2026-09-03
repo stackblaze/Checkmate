@@ -7,6 +7,7 @@ import {
 	getStatusPageQueryValidation,
 	imageValidation,
 	resolveStatusPageQueryValidation,
+	subscribeStatusPageBodyValidation,
 } from "@/api/validation/statusPageValidation.js";
 import { AppError } from "@/utils/AppError.js";
 import { requireTeamId, requireUserId } from "@/api/controllers/controllerUtils.js";
@@ -20,6 +21,7 @@ export interface IStatusPageController {
 	resolveStatusPageByDomain: RequestHandler;
 	getStatusPagesByTeamId: RequestHandler;
 	deleteStatusPage: RequestHandler;
+	subscribeToStatusPage: RequestHandler;
 }
 
 class StatusPageController implements IStatusPageController {
@@ -127,6 +129,25 @@ class StatusPageController implements IStatusPageController {
 		return res.status(200).json({
 			success: true,
 			msg: "Status page deleted successfully",
+		});
+	});
+
+	subscribeToStatusPage = catchAsync(async (req: Request, res: Response) => {
+		getStatusPageParamValidation.parse(req.params);
+		const parsed = subscribeStatusPageBodyValidation.safeParse(req.body);
+		if (!parsed.success) {
+			throw new AppError({ message: "Enter a valid email address", status: 400 });
+		}
+		const url = Array.isArray(req.params.url) ? req.params.url[0] : req.params.url;
+		if (!url) {
+			throw new AppError({ message: "Status page URL is required", status: 400 });
+		}
+
+		await this.statusPageService.subscribeToStatusPage(url, parsed.data.email);
+
+		return res.status(200).json({
+			success: true,
+			msg: "You're subscribed to status updates",
 		});
 	});
 }

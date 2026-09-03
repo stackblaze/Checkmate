@@ -7,9 +7,10 @@ import { useStatusPageTheme } from "@/Pages/StatusPage/Status/themes/StatusPageT
 interface Props {
 	overall: OverallStatus;
 	affected: Pick<Monitor, "name" | "status">[];
+	onSubscribe: () => void;
 }
 
-export const StackblazeIncidentBanner = ({ overall, affected }: Props) => {
+export const StackblazeIncidentBanner = ({ overall, affected, onSubscribe }: Props) => {
 	const { t } = useTranslation();
 	const { tokens } = useStatusPageTheme();
 	const names = affected.map((m) => m.name);
@@ -72,12 +73,20 @@ export const StackblazeIncidentBanner = ({ overall, affected }: Props) => {
 			>
 				{title}
 				<Box
-					component="span"
+					component="button"
+					type="button"
+					onClick={onSubscribe}
 					sx={{
+						appearance: "none",
+						border: 0,
+						background: "transparent",
+						color: "inherit",
 						fontSize: 13,
 						fontWeight: 500,
 						textDecoration: "underline",
 						textUnderlineOffset: "2px",
+						cursor: "pointer",
+						fontFamily: "inherit",
 					}}
 				>
 					{t("pages.statusPages.stackblaze.subscribeShort")}

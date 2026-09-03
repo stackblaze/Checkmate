@@ -79,6 +79,7 @@ export class EmailService implements IEmailService {
 			passwordResetTemplate: loadTemplate("passwordReset"),
 			testEmailTemplate: loadTemplate("testEmailTemplate"),
 			unifiedNotificationTemplate: loadTemplate("unifiedNotification"),
+			statusPageSubscribeTemplate: loadTemplate("statusPageSubscribe"),
 		};
 	};
 

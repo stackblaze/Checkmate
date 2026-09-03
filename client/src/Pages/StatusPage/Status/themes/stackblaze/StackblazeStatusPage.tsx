@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Monitor, MonitorStatus } from "@/Types/Monitor";
 import type { StatusPage, StatusPageRange } from "@/Types/StatusPage";
 import { STATUS_PAGE_RANGE_DAYS } from "@/Types/StatusPage";
@@ -15,6 +15,7 @@ import { StackblazeHeader } from "./StackblazeHeader";
 import { StackblazeIncidentBanner } from "./StackblazeIncidentBanner";
 import { StackblazeOverallBanner } from "./StackblazeOverallBanner";
 import { StackblazeUptimeBar } from "./StackblazeUptimeBar";
+import { StackblazeSubscribeDialog } from "./StackblazeSubscribeDialog";
 
 interface Props {
 	statusPage: StatusPage;
@@ -45,6 +46,7 @@ export const StackblazeStatusPage = ({
 }: Props) => {
 	const { t } = useTranslation();
 	const { tokens } = useStatusPageTheme();
+	const [subscribeOpen, setSubscribeOpen] = useState(false);
 
 	useEffect(() => {
 		if (range !== "90d") {
@@ -74,6 +76,7 @@ export const StackblazeStatusPage = ({
 				<StackblazeHeader
 					companyName={statusPage.companyName}
 					logoSrc={logoSrc}
+					onSubscribe={() => setSubscribeOpen(true)}
 				/>
 
 				<StackblazeOverallBanner tone={overall.tone} />
@@ -83,6 +86,7 @@ export const StackblazeStatusPage = ({
 						<StackblazeIncidentBanner
 							overall={overall}
 							affected={affected}
+							onSubscribe={() => setSubscribeOpen(true)}
 						/>
 					</Box>
 				)}
@@ -180,6 +184,12 @@ export const StackblazeStatusPage = ({
 					})}
 				</Box>
 			</Box>
+			<StackblazeSubscribeDialog
+				open={subscribeOpen}
+				url={statusPage.url}
+				companyName={statusPage.companyName}
+				onClose={() => setSubscribeOpen(false)}
+			/>
 		</Box>
 	);
 };

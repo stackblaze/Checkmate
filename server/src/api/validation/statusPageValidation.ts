@@ -20,6 +20,10 @@ export const getStatusPageParamValidation = z.object({
 	url: z.string().min(1, "URL is required"),
 });
 
+export const subscribeStatusPageBodyValidation = z.object({
+	email: z.string().trim().email("Enter a valid email address").max(254),
+});
+
 export const getStatusPageQueryValidation = z.object({
 	type: z.union([z.enum(StatusPageTypes), z.array(z.enum(StatusPageTypes))]).transform((val) => (Array.isArray(val) ? val : [val])),
 	range: z.enum(StatusPageRanges).optional().default("latest"),

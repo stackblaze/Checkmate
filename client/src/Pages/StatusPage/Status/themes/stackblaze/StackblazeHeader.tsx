@@ -6,19 +6,20 @@ import { StackblazeMark } from "./StackblazeMark";
 interface Props {
 	companyName: string;
 	logoSrc: string | null;
+	onSubscribe: () => void;
 }
 
-export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
+export const StackblazeHeader = ({ companyName, logoSrc, onSubscribe }: Props) => {
 	const { t } = useTranslation();
 	const { mode } = useStatusPageTheme();
-	const ink = mode === "dark" ? "#fafafa" : "#212018";
+	const ink = mode === "dark" ? "#fafafa" : "#111111";
 
 	return (
 		<Box
 			component="header"
 			sx={{
 				display: "flex",
-				alignItems: "flex-start",
+				alignItems: "center",
 				justifyContent: "space-between",
 				gap: 2,
 				pt: "70px",
@@ -29,9 +30,9 @@ export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 				sx={{
 					display: "inline-flex",
 					alignItems: "center",
-					gap: 1.5,
-					color: ink,
+					gap: "14px",
 					minWidth: 0,
+					color: ink,
 				}}
 			>
 				{logoSrc ? (
@@ -39,32 +40,35 @@ export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 						component="img"
 						src={logoSrc}
 						alt=""
-						sx={{ height: 72, maxWidth: 220, objectFit: "contain" }}
+						sx={{
+							height: 56,
+							width: "auto",
+							maxWidth: 56,
+							objectFit: "contain",
+							objectPosition: "left center",
+						}}
 					/>
 				) : (
-					<>
-						<StackblazeMark
-							size={40}
-							color={ink}
-						/>
-						<Box
-							component="span"
-							sx={{
-								fontSize: 28,
-								fontWeight: 700,
-								letterSpacing: "0.04em",
-								lineHeight: 1,
-								textTransform: "uppercase",
-							}}
-						>
-							{companyName}
-						</Box>
-					</>
+					<StackblazeMark size={56} />
 				)}
+				<Box
+					component="span"
+					sx={{
+						fontSize: 40,
+						fontWeight: 600,
+						letterSpacing: "-0.03em",
+						lineHeight: 1,
+						textTransform: "lowercase",
+						color: ink,
+					}}
+				>
+					{companyName}
+				</Box>
 			</Box>
 			<Box
 				component="button"
 				type="button"
+				onClick={onSubscribe}
 				sx={{
 					appearance: "none",
 					border: 0,
@@ -78,10 +82,11 @@ export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 					pt: "10px",
 					pb: "9px",
 					borderRadius: "4px",
-					cursor: "default",
+					cursor: "pointer",
 					whiteSpace: "nowrap",
 					fontFamily: "inherit",
 					lineHeight: 1.55,
+					flexShrink: 0,
 				}}
 			>
 				{t("pages.statusPages.stackblaze.subscribe")}

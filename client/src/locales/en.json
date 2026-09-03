@@ -1709,6 +1709,15 @@
 			"stackblaze": {
 				"subscribe": "Subscribe to updates",
 				"subscribeShort": "Subscribe",
+				"subscribeForm": {
+					"help": "Get an email whenever {{name}} creates, updates, or resolves an incident.",
+					"placeholder": "you@example.com",
+					"submitting": "Subscribing…",
+					"success": "You're subscribed. We'll email you when {{name}} has an incident update.",
+					"error": "Could not subscribe. Try again shortly.",
+					"cancel": "Cancel",
+					"close": "Close"
+				},
 				"noData": "No downtime recorded",
 				"allOperational": "All Systems Operational",
 				"uptimeCaption": "Uptime over the past 90 days.",
@@ -1796,7 +1805,8 @@
 					"description": "Define the default look and feel of your public status page.",
 					"option": {
 						"logo": {
-							"label": "Logo"
+							"label": "Logo",
+							"helper": "Shown in the public status page header. Upload your company mark (PNG or JPEG)."
 						},
 						"color": {
 							"label": "Brand color"

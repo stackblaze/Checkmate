@@ -14,6 +14,11 @@ import { normalizeStatusPageDomain } from "@/utils/statusPageDomain.js";
 import { Monitor } from "@/domain/monitors/monitor.type.js";
 import { IChecksRepository } from "@/domain/checks/check.repository.interface.js";
 import type { DailyCheckBucket } from "@/domain/checks/check.type.js";
+import type { IEmailService } from "@/service/emailService.js";
+import type { ITwentyCrmService } from "@/service/twentyCrmService.js";
+import type { ILogger } from "@/utils/logger.js";
+
+const SERVICE_NAME = "StatusPageService";
 
 export interface IStatusPageService {
 	createStatusPage(userId: string, teamId: string, image: Express.Multer.File | undefined, data: Partial<StatusPage>): Promise<StatusPage>;
@@ -22,6 +27,7 @@ export interface IStatusPageService {
 	getStatusPagesByTeamId(teamId: string): Promise<StatusPage[]>;
 	getPublicStatusPagePayload(statusPage: StatusPage, requesterTeamId: string | undefined, range: StatusPageRange): Promise<PublicStatusPagePayload>;
 	updateStatusPage(id: string, teamId: string, image: Express.Multer.File | undefined, data: Partial<StatusPage>): Promise<StatusPage>;
+	subscribeToStatusPage(url: string, email: string): Promise<void>;
 
 	deleteStatusPage(statusPageId: string, teamId: string): Promise<StatusPage>;
 }
@@ -31,7 +37,10 @@ export class StatusPageService implements IStatusPageService {
 		private statusPagesRepository: IStatusPagesRepository,
 		private settingsService: ISettingsService,
 		private monitorsRepository: IMonitorsRepository,
-		private checksRepository: IChecksRepository
+		private checksRepository: IChecksRepository,
+		private emailService?: IEmailService,
+		private twentyCrmService?: ITwentyCrmService,
+		private logger?: ILogger
 	) {}
 
 	private assertCustomDomainAllowed = (customDomain: string | null | undefined) => {
@@ -175,5 +184,68 @@ export class StatusPageService implements IStatusPageService {
 
 	deleteStatusPage = async (statusPageId: string, teamId: string): Promise<StatusPage> => {
 		return await this.statusPagesRepository.deleteById(statusPageId, teamId);
+	};
+
+	private publicStatusPageLink = (statusPage: StatusPage): string => {
+		if (statusPage.customDomain) {
+			return `https://${statusPage.customDomain}`;
+		}
+		const clientHost = this.settingsService.getSettings().clientHost.replace(/\/+$/, "");
+		return `${clientHost}/status/public/${statusPage.url}`;
+	};
+
+	subscribeToStatusPage = async (url: string, email: string): Promise<void> => {
+		const statusPage = this.normalizeTheme(await this.statusPagesRepository.findByUrl(url));
+		if (!statusPage.isPublished) {
+			throw new AppError({ message: "Status page not found", status: 404, service: SERVICE_NAME, method: "subscribeToStatusPage" });
+		}
+
+		if (!this.twentyCrmService?.enabled()) {
+			throw new AppError({
+				message: "Subscriptions are temporarily unavailable",
+				status: 503,
+				service: SERVICE_NAME,
+				method: "subscribeToStatusPage",
+			});
+		}
+
+		const statusPageUrl = this.publicStatusPageLink(statusPage);
+		try {
+			await this.twentyCrmService.upsertStatusPageSubscriber({
+				email,
+				companyName: statusPage.companyName,
+				statusPageUrl,
+			});
+		} catch (error: unknown) {
+			throw new AppError({
+				message: "Could not save your subscription. Try again shortly.",
+				status: 502,
+				service: SERVICE_NAME,
+				method: "subscribeToStatusPage",
+				details: { cause: error instanceof Error ? error.message : "Unknown error" },
+			});
+		}
+
+		if (!this.emailService) {
+			return;
+		}
+
+		try {
+			const html = await this.emailService.buildEmail("statusPageSubscribeTemplate", {
+				companyName: statusPage.companyName,
+				statusPageUrl,
+				email,
+			});
+			if (!html) {
+				throw new Error("Failed to build status page subscribe email");
+			}
+			await this.emailService.sendEmail(email, `You're subscribed to ${statusPage.companyName} status updates`, html);
+		} catch (error: unknown) {
+			this.logger?.warn({
+				message: error instanceof Error ? error.message : "Failed to send status page subscribe email",
+				service: SERVICE_NAME,
+				method: "subscribeToStatusPage",
+			});
+		}
 	};
 }

@@ -1,0 +1,26 @@
+<mjml>
+	<mj-head>
+		<mj-attributes>
+			<mj-all font-family="Helvetica Neue, Helvetica, Arial, sans-serif"></mj-all>
+			<mj-text font-size="16px" color="#333333" line-height="24px"></mj-text>
+		</mj-attributes>
+	</mj-head>
+	<mj-body background-color="#f5f5f5">
+		<mj-section padding="32px 0 8px">
+			<mj-column>
+				<mj-text font-size="22px" font-weight="700" color="#212018">
+					You're subscribed to {{ companyName }}
+				</mj-text>
+				<mj-text>
+					You'll get an email when {{ companyName }} creates, updates, or resolves an incident.
+				</mj-text>
+				<mj-button background-color="#212018" color="#ffffff" href="{{ statusPageUrl }}" border-radius="4px" font-size="14px">
+					View status page
+				</mj-button>
+				<mj-text font-size="13px" color="#737373">
+					This confirmation was sent to {{ email }}.
+				</mj-text>
+			</mj-column>
+		</mj-section>
+	</mj-body>
+</mjml>

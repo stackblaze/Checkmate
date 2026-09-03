@@ -434,4 +434,85 @@ describe("StatusPageService", () => {
 			expect(result).toEqual(makeStatusPage());
 		});
 	});
+
+	describe("subscribeToStatusPage", () => {
+		const published = makeStatusPage({ isPublished: true, companyName: "Stackblaze", url: "stackblaze" });
+
+		it("upserts the subscriber in Twenty and sends confirmation", async () => {
+			const { repo, settingsService, monitorsRepo, checksRepo } = createService();
+			repo.findByUrl.mockResolvedValue(published);
+			const emailService = {
+				buildEmail: jest.fn().mockResolvedValue("<html>ok</html>"),
+				sendEmail: jest.fn().mockResolvedValue("msg-1"),
+			};
+			const twentyCrmService = {
+				enabled: jest.fn().mockReturnValue(true),
+				upsertStatusPageSubscriber: jest.fn().mockResolvedValue({ personId: "person-1" }),
+			};
+			const service = new StatusPageService(
+				repo,
+				settingsService,
+				monitorsRepo,
+				checksRepo,
+				emailService as any,
+				twentyCrmService as any
+			);
+
+			await service.subscribeToStatusPage("stackblaze", "ada@example.com");
+
+			expect(twentyCrmService.upsertStatusPageSubscriber).toHaveBeenCalledWith({
+				email: "ada@example.com",
+				companyName: "Stackblaze",
+				statusPageUrl: "http://localhost:5173/status/public/stackblaze",
+			});
+			expect(emailService.sendEmail).toHaveBeenCalledWith(
+				"ada@example.com",
+				"You're subscribed to Stackblaze status updates",
+				"<html>ok</html>"
+			);
+		});
+
+		it("returns 404 for unpublished pages", async () => {
+			const { repo, settingsService, monitorsRepo, checksRepo } = createService();
+			repo.findByUrl.mockResolvedValue(makeStatusPage({ isPublished: false }));
+			const twentyCrmService = {
+				enabled: jest.fn().mockReturnValue(true),
+				upsertStatusPageSubscriber: jest.fn(),
+			};
+			const service = new StatusPageService(
+				repo,
+				settingsService,
+				monitorsRepo,
+				checksRepo,
+				undefined,
+				twentyCrmService as any
+			);
+
+			await expect(service.subscribeToStatusPage("stackblaze", "ada@example.com")).rejects.toMatchObject({
+				status: 404,
+			});
+			expect(twentyCrmService.upsertStatusPageSubscriber).not.toHaveBeenCalled();
+		});
+
+		it("returns 503 when Twenty CRM is not configured", async () => {
+			const { repo, settingsService, monitorsRepo, checksRepo } = createService();
+			repo.findByUrl.mockResolvedValue(published);
+			const twentyCrmService = {
+				enabled: jest.fn().mockReturnValue(false),
+				upsertStatusPageSubscriber: jest.fn(),
+			};
+			const service = new StatusPageService(
+				repo,
+				settingsService,
+				monitorsRepo,
+				checksRepo,
+				undefined,
+				twentyCrmService as any
+			);
+
+			await expect(service.subscribeToStatusPage("stackblaze", "ada@example.com")).rejects.toMatchObject({
+				status: 503,
+			});
+		});
+	});
 });

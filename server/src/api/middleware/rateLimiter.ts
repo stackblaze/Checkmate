@@ -17,3 +17,11 @@ export const authApiLimiter = rateLimit({
 	legacyHeaders: false,
 	ipv6Subnet: 64,
 });
+
+export const statusPageSubscribeLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 8,
+	standardHeaders: true,
+	legacyHeaders: false,
+	ipv6Subnet: 64,
+});

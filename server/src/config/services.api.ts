@@ -8,6 +8,7 @@ import { IUserService, UserService } from "@/domain/users/user.service.js";
 import { IJobScheduler } from "@/worker/worker.interface.js";
 import { ProxiesService, IProxiesService } from "@/domain/proxies/proxy.service.js";
 import { SharedServices } from "@/config/services.shared.js";
+import { TwentyCrmService } from "@/service/twentyCrmService.js";
 
 // Third-party
 import jwt from "jsonwebtoken";
@@ -94,7 +95,16 @@ export const buildApi = (shared: SharedServices, jobScheduler: IJobScheduler): A
 		emailService,
 	});
 
-	const statusPageService = new StatusPageService(statusPagesRepository, settingsService, monitorsRepository, checksRepository);
+	const twentyCrmService = new TwentyCrmService(logger);
+	const statusPageService = new StatusPageService(
+		statusPagesRepository,
+		settingsService,
+		monitorsRepository,
+		checksRepository,
+		emailService,
+		twentyCrmService,
+		logger
+	);
 	const tagsService = new TagsService(tagsRepository, monitorsRepository);
 	const diagnosticService = new DiagnosticService(db);
 	const proxiesService = new ProxiesService(proxiesRepository, monitorsRepository, settingsService);

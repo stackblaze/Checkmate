@@ -360,7 +360,16 @@ const CreateStatusPage = () => {
 						subtitle={t("pages.statusPages.form.appearance.description")}
 						rightContent={
 							<Stack spacing={theme.spacing(LAYOUT.MD)}>
-								<Stack alignItems={"center"}>
+								<Stack spacing={theme.spacing(2)}>
+									<Typography variant="body2">
+										{t("pages.statusPages.form.appearance.option.logo.label")}
+									</Typography>
+									<Typography
+										variant="caption"
+										color="text.secondary"
+									>
+										{t("pages.statusPages.form.appearance.option.logo.helper")}
+									</Typography>
 									<LogoUploadField />
 								</Stack>
 								<FormColorField
