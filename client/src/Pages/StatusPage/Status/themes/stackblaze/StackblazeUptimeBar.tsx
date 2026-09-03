@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import Tooltip from "@mui/material/Tooltip";
 import { useTranslation } from "react-i18next";
-import type { ChartCell } from "@/Pages/StatusPage/Status/themes/shared/ChartCells";
+import type { BarKind, ChartCell } from "@/Pages/StatusPage/Status/themes/shared/ChartCells";
 import { useStatusPageTheme } from "@/Pages/StatusPage/Status/themes/StatusPageThemeProvider";
 
 interface Props {
@@ -12,11 +12,13 @@ interface Props {
 export const StackblazeUptimeBar = ({ cells, uptimeLabel }: Props) => {
 	const { t } = useTranslation();
 	const { tokens } = useStatusPageTheme();
-	const colorFor = (kind: ChartCell["barKind"]) => {
-		if (kind === "up") return tokens.up;
-		if (kind === "degraded") return tokens.degraded;
+
+	const colorFor = (kind: BarKind) => {
 		if (kind === "down") return tokens.down;
-		return tokens.border;
+		if (kind === "degraded") return tokens.degraded;
+		// Empty days (no checks retained) read as operational, matching
+		// Cursor-style 90-day bars instead of a gray barcode.
+		return tokens.up;
 	};
 
 	return (
@@ -26,61 +28,68 @@ export const StackblazeUptimeBar = ({ cells, uptimeLabel }: Props) => {
 				aria-label={uptimeLabel}
 				sx={{
 					display: "flex",
-					gap: "2px",
-					height: 34,
+					gap: "1.5px",
+					height: 32,
 					alignItems: "stretch",
 				}}
 			>
-				{cells.map((cell) => {
-					const seg = (
+				{cells.map((cell) => (
+					<Tooltip
+						key={cell.key}
+						title={cell.tooltip ?? t("pages.statusPages.stackblaze.noData")}
+						arrow
+						placement="top"
+					>
 						<Box
+							aria-label={cell.ariaLabel || uptimeLabel}
 							sx={{
 								flex: "1 1 0",
 								minWidth: 0,
-								borderRadius: "1px",
+								borderRadius: "2px",
 								background: colorFor(cell.barKind),
-								height: "100%",
 							}}
-							aria-label={cell.ariaLabel}
 						/>
-					);
-					if (!cell.tooltip) {
-						return (
-							<Box
-								key={cell.key}
-								sx={{ flex: "1 1 0", minWidth: 0, height: "100%" }}
-							>
-								{seg}
-							</Box>
-						);
-					}
-					return (
-						<Tooltip
-							key={cell.key}
-							title={cell.tooltip}
-							arrow
-							placement="top"
-						>
-							<Box sx={{ flex: "1 1 0", minWidth: 0, height: "100%" }}>{seg}</Box>
-						</Tooltip>
-					);
-				})}
+					</Tooltip>
+				))}
 			</Box>
 			<Box
 				sx={{
-					display: "grid",
-					gridTemplateColumns: "1fr auto 1fr",
-					gap: 1,
-					mt: 1,
+					position: "relative",
+					mt: 1.25,
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "space-between",
 					fontSize: 11,
 					color: tokens.textMuted,
+					"&::before": {
+						content: '""',
+						position: "absolute",
+						left: 0,
+						right: 0,
+						top: "50%",
+						height: "1px",
+						background: tokens.border,
+						pointerEvents: "none",
+					},
 				}}
 			>
-				<Box>{t("pages.statusPages.stackblaze.daysAgo")}</Box>
-				<Box sx={{ textAlign: "center", fontWeight: 500, color: tokens.text }}>
+				<Box sx={{ pr: 1, background: tokens.surface, position: "relative" }}>
+					{t("pages.statusPages.stackblaze.daysAgo")}
+				</Box>
+				<Box
+					sx={{
+						px: 1,
+						background: tokens.surface,
+						position: "relative",
+						fontWeight: 500,
+						color: tokens.text,
+					}}
+				>
 					{uptimeLabel}
 				</Box>
-				<Box sx={{ textAlign: "right" }}>{t("pages.statusPages.stackblaze.today")}</Box>
+				<Box sx={{ pl: 1, background: tokens.surface, position: "relative" }}>
+					{t("pages.statusPages.stackblaze.today")}
+				</Box>
 			</Box>
 		</Box>
 	);

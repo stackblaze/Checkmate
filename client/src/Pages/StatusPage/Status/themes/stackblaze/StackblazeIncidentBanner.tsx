@@ -49,27 +49,42 @@ export const StackblazeIncidentBanner = ({ overall, affected }: Props) => {
 			component="article"
 			role="status"
 			sx={{
-				mb: 3.5,
-				border: `1px solid ${tokens.warn}`,
-				borderRadius: tokens.radius,
+				mb: 6,
+				border: `1px solid ${tokens.degraded}`,
+				borderRadius: "6px",
 				overflow: "hidden",
 				background: tokens.surface,
 			}}
 		>
 			<Box
 				sx={{
-					background: tokens.warn,
-					color: "#422006",
-					px: 1.75,
-					py: 1.25,
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "space-between",
+					gap: 2,
+					background: tokens.degraded,
+					color: "#3f2e05",
+					px: 2,
+					py: 1.35,
 					fontSize: 14,
 					fontWeight: 600,
 				}}
 			>
 				{title}
+				<Box
+					component="span"
+					sx={{
+						fontSize: 13,
+						fontWeight: 500,
+						textDecoration: "underline",
+						textUnderlineOffset: "2px",
+					}}
+				>
+					{t("pages.statusPages.stackblaze.subscribeShort")}
+				</Box>
 			</Box>
 			<Box sx={{ px: 2, py: 1.75 }}>
-				<Box sx={{ m: 0, fontSize: 14, mb: 1 }}>
+				<Box sx={{ m: 0, fontSize: 14, mb: 0.75, color: tokens.text }}>
 					<strong>{t("pages.statusPages.stackblaze.incident.investigating")}</strong>
 					{" — "}
 					{body}

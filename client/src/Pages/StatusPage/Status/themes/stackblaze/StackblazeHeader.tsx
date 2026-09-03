@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import { useTranslation } from "react-i18next";
 import { useStatusPageTheme } from "@/Pages/StatusPage/Status/themes/StatusPageThemeProvider";
-import { monoFirstChar } from "@/Pages/StatusPage/Status/themes/shared/overallStatus";
+import { StackblazeMark } from "./StackblazeMark";
 
 interface Props {
 	companyName: string;
@@ -10,7 +10,7 @@ interface Props {
 
 export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 	const { t } = useTranslation();
-	const { tokens } = useStatusPageTheme();
+	const { tokens, mode } = useStatusPageTheme();
 
 	return (
 		<Box
@@ -20,17 +20,16 @@ export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 				alignItems: "center",
 				justifyContent: "space-between",
 				gap: 2,
-				mb: 5,
-				flexWrap: "wrap",
+				mb: { xs: 7, sm: 10 },
 			}}
 		>
 			<Box
 				sx={{
 					display: "inline-flex",
 					alignItems: "center",
-					gap: 1.25,
+					gap: 1.5,
 					color: tokens.text,
-					textDecoration: "none",
+					minWidth: 0,
 				}}
 			>
 				{logoSrc ? (
@@ -38,57 +37,44 @@ export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 						component="img"
 						src={logoSrc}
 						alt=""
-						sx={{ width: 28, height: 28, objectFit: "contain" }}
+						sx={{ width: 32, height: 32, objectFit: "contain" }}
 					/>
 				) : (
-					<Box
-						aria-hidden
-						sx={{
-							width: 22,
-							height: 22,
-							background: tokens.text,
-							transform: "rotate(45deg)",
-							borderRadius: "2px",
-							position: "relative",
-							"&::after": {
-								content: '""',
-								position: "absolute",
-								inset: "5px",
-								background: tokens.bg,
-								borderRadius: "1px",
-							},
-						}}
+					<StackblazeMark
+						size={32}
+						color={mode === "dark" ? "#fafafa" : "#111111"}
 					/>
 				)}
 				<Box
 					component="span"
 					sx={{
-						fontSize: 15,
+						fontSize: 20,
 						fontWeight: 700,
-						letterSpacing: "0.08em",
+						letterSpacing: "0.02em",
+						lineHeight: 1,
 					}}
 				>
-					{companyName ? companyName.toUpperCase() : monoFirstChar(companyName)}
+					{companyName}
 				</Box>
 			</Box>
 			<Box
 				component="button"
 				type="button"
-				disabled
 				sx={{
 					appearance: "none",
 					border: 0,
-					background: tokens.text,
-					color: tokens.bg,
+					background: mode === "dark" ? "#fafafa" : "#1a1a1a",
+					color: mode === "dark" ? "#111" : "#fff",
 					fontSize: 11,
 					fontWeight: 600,
-					letterSpacing: "0.06em",
+					letterSpacing: "0.08em",
 					textTransform: "uppercase",
 					px: 1.75,
-					py: 1.15,
+					py: 1.1,
 					borderRadius: "4px",
-					opacity: 0.9,
 					cursor: "default",
+					whiteSpace: "nowrap",
+					fontFamily: "inherit",
 				}}
 			>
 				{t("pages.statusPages.stackblaze.subscribe")}

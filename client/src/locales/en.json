@@ -1707,6 +1707,8 @@
 			},
 			"stackblaze": {
 				"subscribe": "Subscribe to updates",
+				"subscribeShort": "Subscribe",
+				"noData": "No downtime recorded",
 				"uptimeCaption": "Uptime over the past 90 days.",
 				"daysAgo": "90 days ago",
 				"today": "Today",
