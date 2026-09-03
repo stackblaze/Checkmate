@@ -6,6 +6,7 @@ export const createNotificationRoutes = (notificationController: INotificationCo
 	router.post("/", notificationController.createNotification);
 	router.post("/test/all", notificationController.testAllNotifications);
 	router.post("/test", notificationController.testNotification);
+	router.post("/test/route", notificationController.testRoute);
 	router.get("/team", notificationController.getNotificationsByTeamId);
 	router.get("/:id", notificationController.getNotificationById);
 	router.delete("/:id", notificationController.deleteNotification);

@@ -8,6 +8,7 @@ import {
 	testNotificationBodyValidation,
 	editNotificationParamValidation,
 	testAllNotificationsBodyValidation,
+	testRouteBodyValidation,
 } from "@/api/validation/notificationValidation.js";
 import { AppError } from "@/utils/AppError.js";
 import { INotificationsService } from "@/domain/notifications/notification.service.js";
@@ -24,6 +25,7 @@ export interface INotificationController {
 	getNotificationById: RequestHandler;
 	editNotification: RequestHandler;
 	testAllNotifications: RequestHandler;
+	testRoute: RequestHandler;
 }
 class NotificationController implements INotificationController {
 	private notificationsService: INotificationsService;
@@ -40,6 +42,28 @@ class NotificationController implements INotificationController {
 		return res.status(200).json({
 			success,
 			msg: success ? "Notification sent successfully" : "Notification could not be sent — check the destination details.",
+			details: { service: SERVICE_NAME },
+		});
+	});
+
+	testRoute = catchAsync(async (req: Request, res: Response) => {
+		const { notification, tagIds } = testRouteBodyValidation.parse(req.body);
+		const result = await this.notificationsService.sendRoutingTest(notification, tagIds);
+
+		const reached = result.deliveries.filter((d) => d.delivered).map((d) => d.label);
+		const failed = result.deliveries.filter((d) => !d.delivered).map((d) => d.label);
+		const success = result.deliveries.length > 0 && failed.length === 0;
+		const msg =
+			result.deliveries.length === 0
+				? "No webhook matched these tags and no default webhook is set."
+				: failed.length === 0
+					? `Test sent to: ${reached.join(", ")}`
+					: `Delivery failed for: ${failed.join(", ")}${reached.length ? ` (sent to: ${reached.join(", ")})` : ""}`;
+
+		return res.status(200).json({
+			success,
+			msg,
+			data: result,
 			details: { service: SERVICE_NAME },
 		});
 	});

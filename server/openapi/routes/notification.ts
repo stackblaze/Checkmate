@@ -7,6 +7,7 @@ import {
 	getNotificationByIdParamValidation,
 	editNotificationParamValidation,
 	testAllNotificationsBodyValidation,
+	testRouteBodyValidation,
 } from "@/api/validation/notificationValidation.js";
 
 const tags = ["notifications"];
@@ -136,6 +137,27 @@ registry.registerPath({
 	security: bearer,
 	request: { body: { content: json(testAllNotificationsBodyValidation) } },
 	responses: { "200": okUnknown, ...standardErrors },
+});
+
+registry.registerPath({
+	method: "post",
+	path: "/notifications/test/route",
+	tags,
+	summary: "Dry-run tag routing: send the test alert to every webhook a monitor with these tags would reach",
+	security: bearer,
+	request: { body: { content: json(testRouteBodyValidation) } },
+	responses: {
+		"200": okJson(
+			z
+				.object({
+					success: z.boolean(),
+					msg: z.string(),
+					data: z.object({ deliveries: z.array(z.object({ label: z.string(), delivered: z.boolean() })) }),
+				})
+				.passthrough()
+		),
+		...standardErrors,
+	},
 });
 
 registry.registerPath({

@@ -10,8 +10,15 @@ import type { ISettingsService } from "@/domain/app-settings/app-settings.servic
 import { ILogger } from "@/utils/logger.js";
 import type { INotificationMessageBuilder } from "@/domain/notifications/notification.message-builder.js";
 import type { NotificationChannel } from "@/domain/notifications/notification.type.js";
+import { resolveWebhookAddresses } from "@/domain/notifications/notification.webhook-routes.js";
 
 export type NotificationProviderRegistry = Record<NotificationChannel, INotificationProvider>;
+
+/** One delivery attempt per webhook the routing resolved to. `label` is the
+ *  matching route's name (or "default" for the fallback address). */
+export interface RoutingTestResult {
+	deliveries: Array<{ label: string; delivered: boolean }>;
+}
 
 export interface INotificationsService {
 	createNotification: (notificationData: Partial<Notification>, userId: string, teamId: string) => Promise<Notification>;
@@ -23,6 +30,7 @@ export interface INotificationsService {
 
 	sendTestNotification: (notification: Partial<Notification>) => Promise<boolean>;
 	testAllNotifications: (notificationIds: string[]) => Promise<boolean>;
+	sendRoutingTest: (notification: Partial<Notification>, tagIds: string[]) => Promise<RoutingTestResult>;
 }
 
 const SERVICE_NAME = "NotificationsService";
@@ -144,6 +152,40 @@ export class NotificationsService implements INotificationsService {
 			return false;
 		}
 		return await provider.sendTestAlert(notification);
+	};
+
+	/**
+	 * Exercise the real routing for a monitor that carries `tagIds`: resolve the
+	 * webhooks exactly as sendMessage would, then post the test alert to each.
+	 * Uses the form's unsaved values so routes can be checked before saving.
+	 */
+	sendRoutingTest = async (notification: Partial<Notification>, tagIds: string[]): Promise<RoutingTestResult> => {
+		const type = notification.type;
+		const provider = type ? this.providers[type] : undefined;
+		if (!provider) {
+			this.logger.warn({
+				message: `Unknown notification type: ${notification.type}`,
+				service: SERVICE_NAME,
+				method: "sendRoutingTest",
+			});
+			return { deliveries: [] };
+		}
+
+		const routes = notification.webhookRoutes ?? [];
+		const addresses = resolveWebhookAddresses(
+			{ address: notification.address, webhookRoutes: routes, alsoNotifyDefault: notification.alsoNotifyDefault },
+			tagIds
+		);
+		const labelFor = (address: string) =>
+			routes.find((route) => route.address.trim() === address)?.name?.trim() || (address === notification.address?.trim() ? "default" : "route");
+
+		const deliveries = await Promise.all(
+			addresses.map(async (address) => ({
+				label: labelFor(address),
+				delivered: await provider.sendTestAlert({ ...notification, address }),
+			}))
+		);
+		return { deliveries };
 	};
 
 	testAllNotifications = async (notificationIds: string[]) => {

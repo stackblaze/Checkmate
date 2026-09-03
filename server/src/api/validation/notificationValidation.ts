@@ -167,6 +167,13 @@ export const createNotificationBodyValidation = z.discriminatedUnion("type", [
 
 export const testNotificationBodyValidation = createNotificationBodyValidation;
 
+/** Dry-run the tag routing of an (unsaved) notification form: which webhooks
+ *  would a monitor carrying `tagIds` reach? Each one gets the test alert. */
+export const testRouteBodyValidation = z.object({
+	notification: testNotificationBodyValidation,
+	tagIds: z.array(z.string().min(1)).default([]),
+});
+
 export const deleteNotificationParamValidation = z.object({
 	id: z.string().min(1, "Notification ID is required"),
 });
