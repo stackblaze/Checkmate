@@ -338,6 +338,61 @@ describe("NotificationsService", () => {
 		});
 	});
 
+	// ── sendRoutingTest ───────────────────────────────────────────────────
+
+	describe("sendRoutingTest", () => {
+		const routed = () =>
+			makeNotification({
+				type: "discord",
+				address: "https://discord.com/api/webhooks/default",
+				alsoNotifyDefault: false,
+				webhookRoutes: [
+					{ name: "us-east-1", address: "https://discord.com/api/webhooks/east", tagIds: ["tag-east"] },
+					{ name: "us-west-1", address: "https://discord.com/api/webhooks/west", tagIds: ["tag-west"] },
+				],
+			});
+
+		it("posts the test alert to the route matching the tags, labelled by route name", async () => {
+			const { service, discordProvider } = createService();
+
+			const result = await service.sendRoutingTest(routed(), ["tag-east"]);
+
+			expect(result).toEqual({ deliveries: [{ label: "us-east-1", delivered: true }] });
+			expect(discordProvider.sendTestAlert).toHaveBeenCalledTimes(1);
+			expect(discordProvider.sendTestAlert).toHaveBeenCalledWith(expect.objectContaining({ address: "https://discord.com/api/webhooks/east" }));
+		});
+
+		it("falls back to the default webhook when no route matches", async () => {
+			const { service, discordProvider } = createService();
+
+			const result = await service.sendRoutingTest(routed(), ["tag-none"]);
+
+			expect(result).toEqual({ deliveries: [{ label: "default", delivered: true }] });
+			expect(discordProvider.sendTestAlert).toHaveBeenCalledWith(expect.objectContaining({ address: "https://discord.com/api/webhooks/default" }));
+		});
+
+		it("also hits the default when alsoNotifyDefault is on, and reports per-address outcomes", async () => {
+			const { service, discordProvider } = createService();
+			discordProvider.sendTestAlert.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+			const result = await service.sendRoutingTest({ ...routed(), alsoNotifyDefault: true }, ["tag-west"]);
+
+			expect(result.deliveries).toEqual([
+				{ label: "us-west-1", delivered: true },
+				{ label: "default", delivered: false },
+			]);
+		});
+
+		it("returns no deliveries for an unknown channel type", async () => {
+			const { service, logger } = createService();
+
+			const result = await service.sendRoutingTest({ ...routed(), type: "carrier_pigeon" as any }, ["tag-east"]);
+
+			expect(result).toEqual({ deliveries: [] });
+			expect(logger.warn).toHaveBeenCalledWith(expect.objectContaining({ method: "sendRoutingTest" }));
+		});
+	});
+
 	// ── testAllNotifications ─────────────────────────────────────────────────
 
 	describe("testAllNotifications", () => {

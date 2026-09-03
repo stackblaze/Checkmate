@@ -4,7 +4,9 @@ import IconButton from "@mui/material/IconButton";
 import { useTheme } from "@mui/material/styles";
 import { useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Plus, Send, Trash2 } from "lucide-react";
+import { usePost } from "@/Hooks/UseApi";
 import { Button } from "@/Components/inputs";
 import { FormTextField } from "@/Components/inputs/forms/FormTextField";
 import { FormMultiSelectField } from "@/Components/inputs/forms/FormMultiSelectField";
@@ -23,8 +25,33 @@ interface WebhookRoutingForm {
 export const WebhookRoutesField = ({ tags }: { tags: Tag[] }) => {
 	const { t } = useTranslation();
 	const theme = useTheme();
-	const { watch, setValue } = useFormContext<WebhookRoutingForm>();
+	const { watch, setValue, getValues, trigger } = useFormContext<WebhookRoutingForm>();
 	const routes = watch("webhookRoutes") ?? [];
+	const { post: testRoutePost } = usePost<
+		{ notification: unknown; tagIds: string[] },
+		unknown
+	>();
+	const [testingIndex, setTestingIndex] = useState<number | null>(null);
+
+	// Dry-run the real routing for this route's tags: the server resolves the
+	// webhooks exactly as an alert would and posts the test message to each,
+	// so a green toast means a tagged monitor would land in this channel.
+	const testRoute = async (index: number) => {
+		const valid = await trigger([
+			`webhookRoutes.${index}.address`,
+			`webhookRoutes.${index}.tagIds`,
+		] as never);
+		if (!valid) return;
+		setTestingIndex(index);
+		try {
+			await testRoutePost("/notifications/test/route", {
+				notification: getValues(),
+				tagIds: routes[index]?.tagIds ?? [],
+			});
+		} finally {
+			setTestingIndex(null);
+		}
+	};
 
 	const addRoute = () => {
 		setValue("webhookRoutes", [...routes, { name: "", address: "", tagIds: [] }], {
@@ -101,6 +128,20 @@ export const WebhookRoutesField = ({ tags }: { tags: Tag[] }) => {
 							/>
 						)}
 					/>
+					<Stack
+						direction="row"
+						justifyContent="flex-end"
+					>
+						<Button
+							variant="outlined"
+							color="primary"
+							onClick={() => testRoute(index)}
+							loading={testingIndex === index}
+							startIcon={<Send size={16} />}
+						>
+							{t("pages.notifications.form.webhookRoutes.testRoute")}
+						</Button>
+					</Stack>
 				</Stack>
 			))}
 			<Button

@@ -1283,7 +1283,8 @@
 					"optionTags": "Tags",
 					"placeholderTags": "Select tags for this channel",
 					"alsoNotifyDefault": "Also send to the default webhook when a tag route matches",
-					"empty": "No tag routes yet. Alerts will use the default webhook."
+					"empty": "No tag routes yet. Alerts will use the default webhook.",
+					"testRoute": "Test route"
 				},
 				"homeServer": {
 					"optionHomeServer": "Home server",
