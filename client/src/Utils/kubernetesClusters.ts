@@ -32,6 +32,7 @@ export interface KubernetesCluster {
 	controlPlane: ClusterMember[];
 	nodes: ClusterMember[];
 	deployments: ClusterMember[];
+	tenants: KubernetesCluster[];
 }
 
 export interface RegionGroup {
@@ -41,9 +42,9 @@ export interface RegionGroup {
 
 const NAME_SEP = " · ";
 const K8S_NAME = /^(kamaji-|k3s-)/i;
-const K8S_ROLE = /Control Plane|Tenant |Node /i;
+const K8S_ROLE = /Control Plane|Tenant |Node |Deployment /i;
 const K8S_URL = /healthz\.|\/tenant\/|\/capture\/node|\/component\//i;
-const K8S_TAGS = new Set(["kamaji", "k3s", "tenant"]);
+const K8S_TAGS = new Set(["kamaji", "k3s", "tenant", "kubernetes"]);
 
 const REGION_FROM_NAME: { test: RegExp; region: KubernetesRegion }[] = [
 	{ test: /us-central-1|central-1/i, region: "us-central-1" },
@@ -95,18 +96,34 @@ const parseMember = (
 				parentName: prefix,
 			};
 		}
+		const deployment = rest.match(/^Deployment\s+(.+)$/i);
+		if (deployment) {
+			return { clusterName: prefix, role: "deployment", label: deployment[1] };
+		}
 		if (K8S_NAME.test(prefix)) {
 			return { clusterName: prefix, role: "deployment", label: rest };
 		}
 	}
 
-	const tenantUrl = monitor.url?.match(/\/tenant\/([^/?#]+)/i);
+	const tenantUrl = monitor.url?.match(/\/tenant\/([^/?#]+)(?:\/(.*))?$/i);
 	if (tenantUrl) {
-		return {
-			clusterName: decodeURIComponent(tenantUrl[1]),
-			role: "control-plane",
-			label: name || "Control Plane",
-		};
+		const tenant = decodeURIComponent(tenantUrl[1]);
+		const restPath = tenantUrl[2] || "";
+		if (!restPath) {
+			return {
+				clusterName: tenant,
+				role: "control-plane",
+				label: name || "Control Plane",
+			};
+		}
+		const node = restPath.match(/^(?:capture\/)?node\/(.+)$/i);
+		if (node) {
+			return { clusterName: tenant, role: "node", label: node[1] };
+		}
+		const deployment = restPath.match(/^deployment\/(.+)$/i);
+		if (deployment) {
+			return { clusterName: tenant, role: "deployment", label: deployment[1] };
+		}
 	}
 	if (/\/cluster$/i.test(monitor.url || "") && /healthz|kamaji|k8s/i.test(monitor.url || "")) {
 		return { clusterName: name || "unknown", role: "control-plane", label: "Control Plane" };
@@ -189,10 +206,11 @@ export const groupKubernetesClusters = (
 			controlPlane: [],
 			nodes: [],
 			deployments: [],
+			tenants: [],
 		});
 	}
 
-	return [...byId.values()]
+	const list = [...byId.values()]
 		.map((cluster) => {
 			const controlPlane = cluster.members.filter((m) => m.role === "control-plane");
 			const nodes = cluster.members.filter((m) => m.role === "node");
@@ -206,7 +224,20 @@ export const groupKubernetesClusters = (
 			};
 		})
 		.sort((a, b) => a.name.localeCompare(b.name));
+
+	const byName = new Map(list.map((cluster) => [cluster.name, cluster]));
+	for (const cluster of list) {
+		if (cluster.kind !== "tenant" || !cluster.parentName) continue;
+		byName.get(cluster.parentName)?.tenants.push(cluster);
+	}
+	for (const cluster of list) {
+		cluster.tenants.sort((a, b) => a.name.localeCompare(b.name));
+	}
+	return list;
 };
+
+export const isListCluster = (cluster: KubernetesCluster): boolean =>
+	cluster.kind !== "tenant" || !cluster.parentName;
 
 export const groupClustersByRegion = (clusters: KubernetesCluster[]): RegionGroup[] => {
 	const byRegion = new Map<KubernetesRegion, KubernetesCluster[]>();

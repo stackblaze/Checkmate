@@ -256,8 +256,18 @@ const CreateMonitorPage = () => {
 		const firstSegment = pathSegments[0];
 		if (firstSegment === "pagespeed") return "pagespeed";
 		if (firstSegment === "infrastructure") return "hardware";
+		if (firstSegment === "kubernetes") return "kubernetes";
 		return "uptime";
 	}, [location.pathname]);
+
+	const listPath =
+		pageType === "pagespeed"
+			? "/pagespeed"
+			: pageType === "hardware"
+				? "/infrastructure"
+				: pageType === "kubernetes"
+					? "/kubernetes"
+					: "/uptime";
 
 	const showTypeSelector = pageType === "uptime" && !isEditMode;
 	const defaultType: MonitorType =
@@ -291,6 +301,16 @@ const CreateMonitorPage = () => {
 	useEffect(() => {
 		reset(defaults);
 	}, [defaults, reset]);
+
+	useEffect(() => {
+		if (isEditMode || pageType !== "kubernetes" || !tags?.length) return;
+		const current = form.getValues("tags") || [];
+		if (current.length) return;
+		const preferred = tags.find((tag) =>
+			["kubernetes", "kamaji", "k3s"].includes((tag.name || "").toLowerCase())
+		);
+		if (preferred) setValue("tags", [preferred.id]);
+	}, [isEditMode, pageType, tags, setValue, form]);
 
 	// Multi-step wizard on every create flow; edit mode keeps the flat form
 	// where showStep() is always true.
@@ -327,10 +347,17 @@ const CreateMonitorPage = () => {
 		}
 	}, [watchedType, showTypeSelector, reset, clearErrors]);
 
-	const generalSettingsConfig = useMemo(
-		() => getGeneralSettingsConfig(watchedType, t),
-		[watchedType, t]
-	);
+	const generalSettingsConfig = useMemo(() => {
+		const config = getGeneralSettingsConfig(watchedType, t);
+		if (pageType === "kubernetes" && watchedType === "http") {
+			return {
+				...config,
+				urlPlaceholder: t("pages.kubernetes.create.urlPlaceholder"),
+				namePlaceholder: t("pages.kubernetes.create.namePlaceholder"),
+			};
+		}
+		return config;
+	}, [watchedType, t, pageType]);
 
 	const latestHardwareDisks = useMemo(() => {
 		const checks = existingMonitor?.recentChecks;
@@ -362,13 +389,7 @@ const CreateMonitorPage = () => {
 		await deleteFn(`/monitors/${monitorId}`);
 		setIsDeleteDialogOpen(false);
 		// Navigate based on page type
-		if (pageType === "pagespeed") {
-			navigate("/pagespeed");
-		} else if (pageType === "hardware") {
-			navigate("/infrastructure");
-		} else {
-			navigate("/uptime");
-		}
+		navigate(listPath);
 	};
 
 	const handleDeleteCancel = () => {
@@ -384,13 +405,7 @@ const CreateMonitorPage = () => {
 		}
 
 		if (result?.success) {
-			if (pageType === "pagespeed") {
-				navigate("/pagespeed");
-			} else if (pageType === "hardware") {
-				navigate("/infrastructure");
-			} else {
-				navigate("/uptime");
-			}
+			navigate(listPath);
 		}
 	};
 

@@ -3,8 +3,8 @@ import type { Monitor } from "@/Types/Monitor";
 import type { Tag } from "@/Types/Tag";
 import {
 	clusterSummary,
-	groupClustersByRegion,
 	groupKubernetesClusters,
+	isListCluster,
 } from "@/Utils/kubernetesClusters";
 import { useMemo } from "react";
 
@@ -22,8 +22,8 @@ export const useKubernetesClusters = () => {
 		() => groupKubernetesClusters(monitors ?? [], tags ?? []),
 		[monitors, tags]
 	);
-	const regions = useMemo(() => groupClustersByRegion(clusters), [clusters]);
-	const summary = useMemo(() => clusterSummary(clusters), [clusters]);
+	const listClusters = useMemo(() => clusters.filter(isListCluster), [clusters]);
+	const summary = useMemo(() => clusterSummary(listClusters), [listClusters]);
 
-	return { clusters, regions, summary, isLoading, error, refetch };
+	return { clusters, listClusters, summary, isLoading, error, refetch };
 };

@@ -173,6 +173,18 @@ const Routes = () => {
 					element={<Kubernetes />}
 				/>
 				<Route
+					path="kubernetes/create"
+					element={<CreateMonitor />}
+				/>
+				<Route
+					path="kubernetes/configure/:monitorId"
+					element={<CreateMonitor />}
+				/>
+				<Route
+					path="kubernetes/:clusterId/tenants/:tenantId"
+					element={<KubernetesDetails />}
+				/>
+				<Route
 					path="kubernetes/:clusterId"
 					element={<KubernetesDetails />}
 				/>

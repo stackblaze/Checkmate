@@ -938,26 +938,33 @@
 		"kubernetes": {
 			"header": {
 				"title": "Kubernetes clusters",
-				"description": "Control plane, nodes, and deployments grouped by region. Built from Kamaji and k3s monitors."
+				"description": "Management and standalone clusters. Open a cluster to see its tenants."
 			},
 			"fallback": {
 				"title": "No Kubernetes clusters yet",
-				"description": "Clusters appear here when Kamaji or k3s monitors exist (for example names like kamaji-us-east-1 · Control Plane).",
-				"actionButton": ""
+				"description": "Add a cluster monitor, or wait for Kamaji and k3s health checks to register.",
+				"actionButton": "Create a monitor"
 			},
 			"filters": {
-				"search": "Search clusters or regions..."
+				"search": "Search clusters..."
 			},
 			"emptySearch": "No clusters match that search.",
 			"notFound": "That cluster is not in the current monitor list.",
 			"back": "Kubernetes",
 			"hostedOn": "Hosted on {{cluster}}",
+			"tenantCount_one": "{{count}} tenant",
+			"tenantCount_other": "{{count}} tenants",
 			"regionCount_one": "{{count}} cluster",
 			"regionCount_other": "{{count}} clusters",
+			"create": {
+				"urlPlaceholder": "https://healthz.us-east-1.stackblaze.cloud/cluster",
+				"namePlaceholder": "kamaji-us-east-1 · Control Plane"
+			},
 			"empty": {
 				"controlPlane": "No control-plane monitor yet",
 				"nodes": "No node monitors yet",
-				"deployments": "No deployment monitors yet"
+				"deployments": "No deployment monitors yet",
+				"tenants": "No tenants on this cluster"
 			},
 			"kind": {
 				"management": "Management",
@@ -970,11 +977,14 @@
 			"sections": {
 				"controlPlane": "Control plane",
 				"nodes": "Nodes",
-				"deployments": "Deployments"
+				"deployments": "Deployments",
+				"tenants": "Tenants"
 			},
 			"table": {
 				"headers": {
 					"kind": "Kind",
+					"region": "Region",
+					"tenants": "Tenants",
 					"controlPlane": "Control plane",
 					"nodes": "Nodes",
 					"deployments": "Deployments"
