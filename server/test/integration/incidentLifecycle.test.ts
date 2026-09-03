@@ -44,7 +44,9 @@ describe("Incident lifecycle (integration)", () => {
 		monitorsRepo = { findById: jest.fn() } as unknown as jest.Mocked<IMonitorsRepository>;
 		usersRepo = { findById: jest.fn() } as unknown as jest.Mocked<IUsersRepository>;
 		messageBuilder = { extractThresholdBreaches: jest.fn() } as unknown as jest.Mocked<INotificationMessageBuilder>;
-		service = new IncidentService(createMockLogger() as any, repo, monitorsRepo, usersRepo, messageBuilder);
+		service = new IncidentService(createMockLogger() as any, repo, monitorsRepo, usersRepo, messageBuilder, {
+			sendIncidentResolvedNotification: jest.fn(async () => true),
+		} as any);
 	});
 
 	// ── Creation ─────────────────────────────────────────────────────────────

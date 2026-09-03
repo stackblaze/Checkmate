@@ -32,6 +32,7 @@ const createSettingsService = (clientHost = "https://app.example.com") => ({
 
 const createMessageBuilder = () => ({
 	buildMessage: jest.fn().mockReturnValue({ type: "monitor_down", content: { title: "Down" } }),
+	buildIncidentResolvedMessage: jest.fn().mockReturnValue({ type: "monitor_up", content: { title: "Resolved" }, metadata: { tagIds: ["tag-1"] } }),
 	extractThresholdBreaches: jest.fn(),
 });
 
@@ -244,6 +245,55 @@ describe("NotificationsService", () => {
 	});
 
 	// ── sendTestNotification ─────────────────────────────────────────────────
+
+	describe("sendIncidentResolvedNotification", () => {
+		const incident = { id: "inc-1", monitorId: "mon-1", teamId: "team-1", startTime: "1700000000000", status: false } as any;
+
+		it("builds the manual-resolve message and sends it through the monitor's providers", async () => {
+			const { service, notificationsRepository, discordProvider, notificationMessageBuilder, settingsService } = createService();
+			const notification = makeNotification({ type: "discord", address: "https://discord.com/api/webhooks/x" });
+			notificationsRepository.findNotificationsByIds.mockResolvedValue([notification] as never);
+			const monitor = makeMonitor({ tags: ["tag-1"], status: "breached" });
+
+			const result = await service.sendIncidentResolvedNotification(monitor, incident, "dean@example.com", "cleaned disk");
+
+			expect(result).toBe(true);
+			expect(settingsService.getSettings).toHaveBeenCalled();
+			expect(notificationMessageBuilder.buildIncidentResolvedMessage).toHaveBeenCalledWith(
+				monitor,
+				incident,
+				"https://app.example.com",
+				"dean@example.com",
+				"cleaned disk",
+				"manual"
+			);
+			expect(discordProvider.sendMessage).toHaveBeenCalledWith(
+				notification,
+				expect.objectContaining({ type: "monitor_up", metadata: { tagIds: ["tag-1"] } })
+			);
+		});
+
+		it("returns true without touching providers when the monitor has no notifications", async () => {
+			const { service, notificationsRepository, discordProvider } = createService();
+
+			const result = await service.sendIncidentResolvedNotification(makeMonitor({ notifications: [] }), incident);
+
+			expect(result).toBe(true);
+			expect(notificationsRepository.findNotificationsByIds).not.toHaveBeenCalled();
+			expect(discordProvider.sendMessage).not.toHaveBeenCalled();
+		});
+
+		it("returns false and logs when a provider fails", async () => {
+			const { service, notificationsRepository, discordProvider, logger } = createService();
+			notificationsRepository.findNotificationsByIds.mockResolvedValue([makeNotification({ type: "discord" })] as never);
+			discordProvider.sendMessage.mockResolvedValue(false);
+
+			const result = await service.sendIncidentResolvedNotification(makeMonitor(), incident);
+
+			expect(result).toBe(false);
+			expect(logger.warn).toHaveBeenCalledWith(expect.objectContaining({ method: "sendIncidentResolvedNotification" }));
+		});
+	});
 
 	describe("sendTestNotification", () => {
 		it.each([

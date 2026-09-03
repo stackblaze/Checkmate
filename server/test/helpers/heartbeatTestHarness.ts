@@ -95,7 +95,14 @@ export function createHeartbeatTestHarness(): HeartbeatTestHarness {
 	const statusService = new StatusService(logger, monitorsRepo as any, createStubMonitorStatsRepo() as any);
 
 	const messageBuilder = { extractThresholdBreaches: jest.fn().mockReturnValue([]) };
-	const incidentService = new IncidentService(logger, incidentsRepo, monitorsRepo as any, { findById: jest.fn() } as any, messageBuilder as any);
+	const incidentService = new IncidentService(
+		logger,
+		incidentsRepo,
+		monitorsRepo as any,
+		{ findById: jest.fn() } as any,
+		messageBuilder as any,
+		{ sendIncidentResolvedNotification: jest.fn(async () => true) } as any
+	);
 
 	const notificationsService = { handleNotifications: jest.fn().mockResolvedValue(true) };
 
