@@ -34,7 +34,8 @@ export const createApp = ({
 	const defaultCorsOptions: CorsOptions = {
 		origin: allowedOrigin,
 		methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-		allowedHeaders: ["Content-Type", "Authorization", "Accept-Language"],
+		allowedHeaders: ["Content-Type", "Authorization", "Accept-Language", "Accept", "MCP-Protocol-Version", "Mcp-Session-Id"],
+		exposedHeaders: ["Mcp-Session-Id", "MCP-Protocol-Version"],
 		credentials: true,
 	};
 	const publicStatusPageCorsOrigin = createStatusPageCorsOrigin(allowedOrigin, services.statusPagesRepository);

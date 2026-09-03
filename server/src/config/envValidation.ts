@@ -34,6 +34,9 @@ const envSchema = z.object({
 	// Optional
 	ORIGIN: z.string().optional(),
 
+	// Optional long-lived token for MCP clients (Cursor, Claude, omp). JWT also works.
+	MCP_API_TOKEN: z.string().optional(),
+
 	// Feature flags
 	STATUS_PAGE_THEMES_ENABLED: booleanCoercion.default(true),
 });

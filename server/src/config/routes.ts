@@ -20,6 +20,7 @@ import { createNotificationRoutes } from "@/api/routes/notificationRoutes.js";
 import { createTagRoutes } from "@/api/routes/tagRoutes.js";
 import { createIncidentRoutes } from "@/api/routes/incidentRoutes.js";
 import { createProxyRoutes } from "@/api/routes/proxyRoutes.js";
+import { createMcpRouter } from "@/mcp/mcpRouter.js";
 
 export const setupRoutes = (app: Application, controllers: InitializedControllers, apiServices: ApiServices) => {
 	const verifyJWT = createVerifyJWT(apiServices.settingsService);
@@ -55,4 +56,19 @@ export const setupRoutes = (app: Application, controllers: InitializedController
 	app.use("/api/v1/diagnostic", verifyJWT, diagnosticRoutes);
 	app.use("/api/v1/incidents", verifyJWT, incidentRoutes);
 	app.use("/api/v1/proxies", verifyJWT, proxyRoutes);
+	app.use(
+		"/api/v1/mcp",
+		createMcpRouter({
+			settingsService: apiServices.settingsService,
+			usersRepository: apiServices.usersRepository,
+			mcpApiToken: process.env.MCP_API_TOKEN,
+			services: {
+				monitorService: apiServices.monitorService,
+				incidentService: apiServices.incidentService,
+				tagsService: apiServices.tagsService,
+				checksRepository: apiServices.checksRepository,
+				monitorStatsRepository: apiServices.monitorStatsRepository,
+			},
+		})
+	);
 };
