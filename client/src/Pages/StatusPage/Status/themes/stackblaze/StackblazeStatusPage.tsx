@@ -1,5 +1,4 @@
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
 import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
 import type { Monitor, MonitorStatus } from "@/Types/Monitor";
@@ -14,6 +13,7 @@ import {
 import { useStatusPageTheme } from "@/Pages/StatusPage/Status/themes/StatusPageThemeProvider";
 import { StackblazeHeader } from "./StackblazeHeader";
 import { StackblazeIncidentBanner } from "./StackblazeIncidentBanner";
+import { StackblazeOverallBanner } from "./StackblazeOverallBanner";
 import { StackblazeUptimeBar } from "./StackblazeUptimeBar";
 
 interface Props {
@@ -32,7 +32,7 @@ const statusTone = (status: MonitorStatus): OverallTone => {
 
 const formatUptimeLabel = (ratio: number): string => {
 	const pct = Math.min(100, Math.max(0, ratio * 100));
-	const formatted = pct >= 99.95 ? pct.toFixed(2) : pct.toFixed(1);
+	const formatted = pct >= 99.95 ? pct.toFixed(2) : pct.toFixed(2).replace(/0$/, "");
 	return `${formatted} % uptime`;
 };
 
@@ -66,38 +66,54 @@ export const StackblazeStatusPage = ({
 				background: tokens.bg,
 				color: tokens.text,
 				fontFamily: tokens.fontFamily,
-				px: { xs: 2.5, sm: 4 },
-				pt: { xs: 5, sm: 8 },
-				pb: 8,
+				px: { xs: 2, sm: 3 },
+				pb: 10,
 			}}
 		>
-			<Box sx={{ maxWidth: 840, mx: "auto" }}>
+			<Box sx={{ maxWidth: 701, mx: "auto" }}>
 				<StackblazeHeader
 					companyName={statusPage.companyName}
 					logoSrc={logoSrc}
 				/>
 
+				<StackblazeOverallBanner tone={overall.tone} />
+
 				{overall.tone !== "up" && affected.length > 0 && (
-					<StackblazeIncidentBanner
-						overall={overall}
-						affected={affected}
-					/>
+					<Box sx={{ mt: -6, mb: 6 }}>
+						<StackblazeIncidentBanner
+							overall={overall}
+							affected={affected}
+						/>
+					</Box>
 				)}
 
 				<Box
 					sx={{
 						textAlign: "right",
-						fontSize: 12,
+						fontSize: "13.6px",
+						lineHeight: "24px",
 						color: tokens.textMuted,
-						mb: 1.25,
-						mt: overall.tone === "up" ? 0 : 0,
+						mb: 0.5,
 					}}
 				>
-					{t("pages.statusPages.stackblaze.uptimeCaption")}
+					{t("pages.statusPages.stackblaze.uptimeCaption")}{" "}
+					<Box
+						component="span"
+						sx={{ textDecoration: "underline", textUnderlineOffset: "2px" }}
+					>
+						{t("pages.statusPages.stackblaze.viewHistorical")}
+					</Box>
 				</Box>
 
-				<Stack gap={1.5}>
-					{monitors.map((monitor) => {
+				<Box
+					sx={{
+						border: `1px solid ${tokens.border}`,
+						borderRadius: "4px",
+						overflow: "hidden",
+						background: tokens.surface,
+					}}
+				>
+					{monitors.map((monitor, index) => {
 						const cells =
 							range === "latest"
 								? checksToCells(monitor.recentChecks ?? [])
@@ -112,28 +128,27 @@ export const StackblazeStatusPage = ({
 							<Box
 								key={monitor.id}
 								sx={{
-									background: tokens.surface,
-									border: `1px solid ${tokens.border}`,
-									borderRadius: "8px",
-									px: 2.5,
-									pt: 2,
-									pb: 1.75,
+									px: "20px",
+									pt: "17.6px",
+									pb: "16px",
+									borderTop: index === 0 ? 0 : `1px solid ${tokens.border}`,
 								}}
 							>
-								<Stack
-									direction="row"
-									alignItems="baseline"
-									justifyContent="space-between"
-									gap={1.5}
-									mb={1.5}
+								<Box
+									sx={{
+										display: "flex",
+										alignItems: "baseline",
+										justifyContent: "space-between",
+										gap: 2,
+									}}
 								>
 									<Box
-										component="h3"
+										component="span"
 										sx={{
-											m: 0,
-											fontSize: 14.5,
-											fontWeight: 600,
-											letterSpacing: "-0.01em",
+											fontSize: 16,
+											fontWeight: 500,
+											lineHeight: "24px",
+											color: tokens.text,
 										}}
 									>
 										{monitor.name}
@@ -141,8 +156,9 @@ export const StackblazeStatusPage = ({
 									<Box
 										component="span"
 										sx={{
-											fontSize: 13,
-											fontWeight: 500,
+											fontSize: 14,
+											fontWeight: 400,
+											lineHeight: "24px",
 											whiteSpace: "nowrap",
 											color:
 												tone === "up"
@@ -154,7 +170,7 @@ export const StackblazeStatusPage = ({
 									>
 										{t(`pages.statusPages.stackblaze.status.${monitor.status}`)}
 									</Box>
-								</Stack>
+								</Box>
 								<StackblazeUptimeBar
 									cells={cells}
 									uptimeLabel={formatUptimeLabel(monitor.uptimePercentage ?? 1)}
@@ -162,7 +178,7 @@ export const StackblazeStatusPage = ({
 							</Box>
 						);
 					})}
-				</Stack>
+				</Box>
 			</Box>
 		</Box>
 	);

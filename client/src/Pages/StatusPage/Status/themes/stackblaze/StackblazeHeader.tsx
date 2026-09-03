@@ -10,17 +10,19 @@ interface Props {
 
 export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 	const { t } = useTranslation();
-	const { tokens, mode } = useStatusPageTheme();
+	const { mode } = useStatusPageTheme();
+	const ink = mode === "dark" ? "#fafafa" : "#212018";
 
 	return (
 		<Box
 			component="header"
 			sx={{
 				display: "flex",
-				alignItems: "center",
+				alignItems: "flex-start",
 				justifyContent: "space-between",
 				gap: 2,
-				mb: { xs: 7, sm: 10 },
+				pt: "70px",
+				pb: "70px",
 			}}
 		>
 			<Box
@@ -28,7 +30,7 @@ export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 					display: "inline-flex",
 					alignItems: "center",
 					gap: 1.5,
-					color: tokens.text,
+					color: ink,
 					minWidth: 0,
 				}}
 			>
@@ -37,25 +39,28 @@ export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 						component="img"
 						src={logoSrc}
 						alt=""
-						sx={{ width: 32, height: 32, objectFit: "contain" }}
+						sx={{ height: 72, maxWidth: 220, objectFit: "contain" }}
 					/>
 				) : (
-					<StackblazeMark
-						size={32}
-						color={mode === "dark" ? "#fafafa" : "#111111"}
-					/>
+					<>
+						<StackblazeMark
+							size={40}
+							color={ink}
+						/>
+						<Box
+							component="span"
+							sx={{
+								fontSize: 28,
+								fontWeight: 700,
+								letterSpacing: "0.04em",
+								lineHeight: 1,
+								textTransform: "uppercase",
+							}}
+						>
+							{companyName}
+						</Box>
+					</>
 				)}
-				<Box
-					component="span"
-					sx={{
-						fontSize: 20,
-						fontWeight: 700,
-						letterSpacing: "0.02em",
-						lineHeight: 1,
-					}}
-				>
-					{companyName}
-				</Box>
 			</Box>
 			<Box
 				component="button"
@@ -63,18 +68,20 @@ export const StackblazeHeader = ({ companyName, logoSrc }: Props) => {
 				sx={{
 					appearance: "none",
 					border: 0,
-					background: mode === "dark" ? "#fafafa" : "#1a1a1a",
+					background: ink,
 					color: mode === "dark" ? "#111" : "#fff",
-					fontSize: 11,
-					fontWeight: 600,
-					letterSpacing: "0.08em",
+					fontSize: 12,
+					fontWeight: 500,
+					letterSpacing: "2px",
 					textTransform: "uppercase",
-					px: 1.75,
-					py: 1.1,
+					px: "15px",
+					pt: "10px",
+					pb: "9px",
 					borderRadius: "4px",
 					cursor: "default",
 					whiteSpace: "nowrap",
 					fontFamily: "inherit",
+					lineHeight: 1.55,
 				}}
 			>
 				{t("pages.statusPages.stackblaze.subscribe")}
