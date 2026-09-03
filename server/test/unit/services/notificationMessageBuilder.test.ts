@@ -786,4 +786,47 @@ describe("NotificationMessageBuilder", () => {
 			});
 		});
 	});
+	describe("buildIncidentResolvedMessage", () => {
+		const incident = {
+			id: "inc-9",
+			monitorId: "mon-1",
+			teamId: "team-1",
+			startTime: "1700000000000",
+			endTime: "1700003600000",
+			status: false,
+			message: "DISK: 80.2% (threshold: 80%)",
+			resolutionType: "manual",
+			createdAt: "2023-11-14T22:13:20.000Z",
+			updatedAt: "2023-11-14T23:13:20.000Z",
+		} as any;
+
+		it("mirrors a recovery, names the resolver, and carries the monitor tags for routing", () => {
+			const monitor = makeMonitor({ type: "hardware", status: "breached", tags: ["tag-east"], name: "VMware Host 1" });
+
+			const msg = builder.buildIncidentResolvedMessage(monitor, incident, "https://app.example.com", "dean@example.com", "cleaned /var");
+
+			expect(msg.type).toBe("threshold_resolved");
+			expect(msg.severity).toBe("success");
+			expect(msg.content.title).toBe("Incident Resolved: VMware Host 1");
+			expect(msg.content.summary).toContain("resolved manually by dean@example.com");
+			expect(msg.content.details).toEqual(
+				expect.arrayContaining([
+					"Resolved by: dean@example.com",
+					"Incident: DISK: 80.2% (threshold: 80%)",
+					"Comment: cleaned /var",
+					"Status: breached",
+				])
+			);
+			expect(msg.content.incident).toMatchObject({ id: "inc-9", url: "https://app.example.com/incidents/inc-9", createdAt: new Date(1700000000000) });
+			expect(msg.metadata).toMatchObject({ teamId: "team-1", notificationReason: "manual_resolve", tagIds: ["tag-east"] });
+		});
+
+		it("falls back to monitor_up for non-hardware monitors and 'an operator' without an email", () => {
+			const msg = builder.buildIncidentResolvedMessage(makeMonitor({ type: "http", status: "down" }), incident, "https://app.example.com");
+
+			expect(msg.type).toBe("monitor_up");
+			expect(msg.content.summary).toContain("resolved manually by an operator");
+			expect(msg.content.details).not.toEqual(expect.arrayContaining([expect.stringMatching(/^Comment:/)]));
+		});
+	});
 });

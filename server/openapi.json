@@ -2036,7 +2036,8 @@
                   "modern",
                   "bold",
                   "editorial",
-                  "minimal"
+                  "minimal",
+                  "stackblaze"
                 ]
               },
               "themeMode": {
@@ -15872,7 +15873,8 @@
                       "modern",
                       "bold",
                       "editorial",
-                      "minimal"
+                      "minimal",
+                      "stackblaze"
                     ]
                   },
                   "themeMode": {
@@ -16140,7 +16142,8 @@
                       "modern",
                       "bold",
                       "editorial",
-                      "minimal"
+                      "minimal",
+                      "stackblaze"
                     ]
                   },
                   "themeMode": {

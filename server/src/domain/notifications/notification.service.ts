@@ -1,5 +1,6 @@
 import type { Monitor } from "@/domain/monitors/monitor.type.js";
 import type { Notification } from "@/domain/notifications/notification.type.js";
+import type { Incident } from "@/domain/incidents/incident.type.js";
 import type { MonitorStatusResponse } from "@/types/network.js";
 import type { NotificationMessage } from "@/domain/notifications/notification.type.js";
 import { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
@@ -23,6 +24,13 @@ export interface INotificationsService {
 
 	sendTestNotification: (notification: Partial<Notification>) => Promise<boolean>;
 	testAllNotifications: (notificationIds: string[]) => Promise<boolean>;
+	/** Operator closed an incident by hand: tell the monitor's channels, routed by its tags. */
+	sendIncidentResolvedNotification: (
+		monitor: Monitor,
+		incident: Incident,
+		resolvedByEmail?: string | null,
+		comment?: string | null
+	) => Promise<boolean>;
 }
 
 const SERVICE_NAME = "NotificationsService";
@@ -98,6 +106,17 @@ export class NotificationsService implements INotificationsService {
 		const clientHost = settings.clientHost || "Host not defined";
 		const notificationMessage = this.notificationMessageBuilder.buildMessage(monitor, monitorStatusResponse, decision, clientHost);
 
+		return await this.dispatch(notifications, monitor, monitorStatusResponse, decision, notificationMessage, "sendNotifications");
+	};
+
+	private dispatch = async (
+		notifications: Notification[],
+		monitor: Monitor,
+		monitorStatusResponse: MonitorStatusResponse,
+		decision: MonitorActionDecision,
+		notificationMessage: NotificationMessage | undefined,
+		method: string
+	) => {
 		const tasks = notifications.map((notification) => this.send(notification, monitor, monitorStatusResponse, decision, notificationMessage));
 
 		const outcomes = await Promise.all(tasks);
@@ -107,11 +126,38 @@ export class NotificationsService implements INotificationsService {
 			this.logger.warn({
 				message: `Notification send completed with ${succeeded} success, ${failed} failure(s)`,
 				service: SERVICE_NAME,
-				method: "sendNotifications",
+				method,
 			});
 		}
 		// Return true if all notifications succeeded
 		return succeeded === notifications.length;
+	};
+
+	sendIncidentResolvedNotification = async (monitor: Monitor, incident: Incident, resolvedByEmail?: string | null, comment?: string | null) => {
+		const notificationIds = monitor.notifications ?? [];
+		if (notificationIds.length === 0) {
+			return true;
+		}
+		const notifications = await this.notificationsRepository.findNotificationsByIds(notificationIds);
+		const settings = this.settingsService.getSettings();
+		const clientHost = settings.clientHost || "Host not defined";
+		const notificationMessage = this.notificationMessageBuilder.buildIncidentResolvedMessage(monitor, incident, clientHost, resolvedByEmail, comment);
+		// Providers only read the message; the status/decision arguments exist for the
+		// worker path's signature. A manual resolve has no check behind it.
+		const syntheticStatus = {
+			monitorId: monitor.id,
+			teamId: monitor.teamId,
+			type: monitor.type,
+			status: monitor.status === "up",
+		} as MonitorStatusResponse;
+		const decision: MonitorActionDecision = {
+			shouldCreateIncident: false,
+			shouldResolveIncident: true,
+			shouldSendNotification: true,
+			incidentReason: null,
+			notificationReason: "status_change",
+		};
+		return await this.dispatch(notifications, monitor, syntheticStatus, decision, notificationMessage, "sendIncidentResolvedNotification");
 	};
 
 	handleNotifications = async (monitor: Monitor, monitorStatusResponse: MonitorStatusResponse, decision: MonitorActionDecision) => {

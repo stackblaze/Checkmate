@@ -1,4 +1,5 @@
 import type { Monitor } from "@/domain/monitors/monitor.type.js";
+import type { Incident } from "@/domain/incidents/incident.type.js";
 import { filterDisksForAlerts } from "@/domain/monitors/disk-alert.utils.js";
 import type { HardwareStatusPayload, MonitorStatusResponse } from "@/types/network.js";
 import type { MonitorActionDecision } from "@/worker/worker.helper.js";
@@ -18,6 +19,13 @@ export interface INotificationMessageBuilder {
 		clientHost: string
 	): NotificationMessage;
 	extractThresholdBreaches(monitor: Monitor, monitorStatusResponse: MonitorStatusResponse): ThresholdBreach[];
+	buildIncidentResolvedMessage(
+		monitor: Monitor,
+		incident: Incident,
+		clientHost: string,
+		resolvedByEmail?: string | null,
+		comment?: string | null
+	): NotificationMessage;
 }
 
 const SERVICE_NAME = "NotificationMessageBuilder";
@@ -50,6 +58,57 @@ export class NotificationMessageBuilder implements INotificationMessageBuilder {
 			metadata: {
 				teamId: monitor.teamId,
 				notificationReason: decision.notificationReason || "status_change",
+				tagIds: monitor.tags ?? [],
+			},
+		};
+	}
+
+	/**
+	 * Message for an incident closed by an operator (PUT /incidents/:id/resolve).
+	 * The worker never sees this transition, so it gets no status-change
+	 * notification of its own; this mirrors the recovery message and carries
+	 * the monitor's tags so webhook routing lands it in the same channels.
+	 */
+	buildIncidentResolvedMessage(
+		monitor: Monitor,
+		incident: Incident,
+		clientHost: string,
+		resolvedByEmail?: string | null,
+		comment?: string | null
+	): NotificationMessage {
+		const type: NotificationType = monitor.type === "hardware" ? "threshold_resolved" : "monitor_up";
+		const resolver = resolvedByEmail?.trim() || "an operator";
+		const details = [`URL: ${monitor.url}`, `Status: ${monitor.status}`, `Type: ${monitor.type}`, `Resolved by: ${resolver}`];
+		if (incident.message) {
+			details.push(`Incident: ${incident.message}`);
+		}
+		if (comment?.trim()) {
+			details.push(`Comment: ${comment.trim()}`);
+		}
+		const startedAt = Number(incident.startTime);
+		const createdAt = Number.isFinite(startedAt) && startedAt > 0 ? new Date(startedAt) : new Date(incident.createdAt);
+
+		return {
+			type,
+			severity: this.determineSeverity(type),
+			monitor: {
+				id: monitor.id,
+				name: monitor.name,
+				url: monitor.url,
+				type: monitor.type,
+				status: monitor.status,
+			},
+			content: {
+				title: `Incident Resolved: ${monitor.name}`,
+				summary: `Incident on "${monitor.name}" was resolved manually by ${resolver}.`,
+				details,
+				incident: { id: incident.id, url: `${clientHost}/incidents/${incident.id}`, createdAt, resolvedAt: new Date() },
+				timestamp: new Date(),
+			},
+			clientHost,
+			metadata: {
+				teamId: monitor.teamId,
+				notificationReason: "manual_resolve",
 				tagIds: monitor.tags ?? [],
 			},
 		};

@@ -150,7 +150,6 @@ export const buildShared = async ({
 	// Services
 	const notificationMessageBuilder = new NotificationMessageBuilder();
 	const emailService = new EmailService(settingsService, fs, path, compile, mjml2html, nodemailer, logger);
-	const incidentService = new IncidentService(logger, incidentsRepository, monitorsRepository, usersRepository, notificationMessageBuilder);
 	const checkService = new CheckService(monitorsRepository, logger, checksRepository);
 
 	const globalPingService = new GlobalPingService(logger);
@@ -197,6 +196,15 @@ export const buildShared = async ({
 		logger,
 		notificationMessageBuilder,
 	});
+	// After notificationsService: a manual incident resolve notifies the monitor's channels.
+	const incidentService = new IncidentService(
+		logger,
+		incidentsRepository,
+		monitorsRepository,
+		usersRepository,
+		notificationMessageBuilder,
+		notificationsService
+	);
 
 	const sharedServices: SharedServices = {
 		logger,
