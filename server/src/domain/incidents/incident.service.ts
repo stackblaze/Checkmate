@@ -10,6 +10,7 @@ import type { Incident, IncidentSummary } from "@/domain/incidents/incident.type
 import type { User } from "@/domain/users/user.type.js";
 import type { MonitorActionDecision } from "@/worker/worker.helper.js";
 import type { INotificationMessageBuilder } from "@/domain/notifications/notification.message-builder.js";
+import type { INotificationsService } from "@/domain/notifications/notification.service.js";
 import type { ILogger } from "@/utils/logger.js";
 import { DateRange } from "@/types/query.js";
 
@@ -43,19 +44,22 @@ export class IncidentService implements IIncidentService {
 	private monitorsRepository: IMonitorsRepository;
 	private usersRepository: IUsersRepository;
 	private notificationMessageBuilder: INotificationMessageBuilder;
+	private notificationsService: INotificationsService;
 
 	constructor(
 		logger: ILogger,
 		incidentsRepository: IIncidentsRepository,
 		monitorsRepository: IMonitorsRepository,
 		usersRepository: IUsersRepository,
-		notificationMessageBuilder: INotificationMessageBuilder
+		notificationMessageBuilder: INotificationMessageBuilder,
+		notificationsService: INotificationsService
 	) {
 		this.logger = logger;
 		this.incidentsRepository = incidentsRepository;
 		this.monitorsRepository = monitorsRepository;
 		this.usersRepository = usersRepository;
 		this.notificationMessageBuilder = notificationMessageBuilder;
+		this.notificationsService = notificationsService;
 	}
 
 	handleIncident = async (
@@ -159,6 +163,11 @@ export class IncidentService implements IIncidentService {
 				details: { incidentId: resolvedIncident.id },
 			});
 
+			// The worker only notifies on status changes it observes; a manual
+			// resolve is invisible to it, so notify here. Never fail the resolve
+			// because a channel is down.
+			await this.notifyManualResolve(resolvedIncident, teamId, userEmail, comment);
+
 			return resolvedIncident;
 		} catch (error: unknown) {
 			this.logger.error({
@@ -169,6 +178,21 @@ export class IncidentService implements IIncidentService {
 				stack: error instanceof Error ? error.stack : undefined,
 			});
 			throw error;
+		}
+	};
+
+	private notifyManualResolve = async (incident: Incident, teamId: string, userEmail?: string, comment?: string) => {
+		try {
+			const monitor = await this.monitorsRepository.findById(incident.monitorId, teamId);
+			await this.notificationsService.sendIncidentResolvedNotification(monitor, incident, userEmail ?? null, comment ?? null);
+		} catch (error: unknown) {
+			this.logger.warn({
+				service: SERVICE_NAME,
+				method: "notifyManualResolve",
+				message: error instanceof Error ? error.message : "Unknown error",
+				details: { incidentId: incident.id },
+				stack: error instanceof Error ? error.stack : undefined,
+			});
 		}
 	};
 

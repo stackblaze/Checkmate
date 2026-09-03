@@ -272,7 +272,7 @@ class MonitorController implements IMonitorController {
 		const monitorId = validatedParams.monitorId;
 		const teamId = requireTeamId(req.user?.teamId);
 
-		const editedMonitor = await this.monitorService.editMonitor({ teamId, monitorId, body: validatedBody });
+		const editedMonitor = await this.monitorService.editMonitor({ teamId, monitorId, body: validatedBody, userEmail: req.user?.email ?? null });
 
 		return res.status(200).json({
 			success: true,

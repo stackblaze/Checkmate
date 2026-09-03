@@ -5,6 +5,7 @@ import type { IIncidentsRepository } from "../../../src/domain/incidents/inciden
 import type { IMonitorsRepository } from "../../../src/domain/monitors/monitor.repository.interface.ts";
 import type { IUsersRepository } from "../../../src/domain/users/user.repository.interface.ts";
 import type { INotificationMessageBuilder } from "../../../src/domain/notifications/notification.message-builder.ts";
+import type { INotificationsService } from "../../../src/domain/notifications/notification.service.ts";
 import type { Monitor } from "../../../src/domain/monitors/monitor.type.ts";
 import type { Incident } from "../../../src/domain/incidents/incident.type.ts";
 import type { MonitorActionDecision } from "../../../src/worker/worker.helper.ts";
@@ -38,21 +39,35 @@ const createMessageBuilder = () =>
 		extractThresholdBreaches: jest.fn(),
 	}) as unknown as jest.Mocked<INotificationMessageBuilder>;
 
+const createNotificationsService = () =>
+	({
+		sendIncidentResolvedNotification: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+	}) as unknown as jest.Mocked<INotificationsService>;
+
 const createService = (overrides?: {
 	logger?: ReturnType<typeof createMockLogger>;
 	incidentsRepository?: ReturnType<typeof createIncidentsRepo>;
 	monitorsRepository?: ReturnType<typeof createMonitorsRepo>;
 	usersRepository?: ReturnType<typeof createUsersRepo>;
 	notificationMessageBuilder?: ReturnType<typeof createMessageBuilder>;
+	notificationsService?: ReturnType<typeof createNotificationsService>;
 }) => {
 	const logger = overrides?.logger ?? createMockLogger();
 	const incidentsRepository = overrides?.incidentsRepository ?? createIncidentsRepo();
 	const monitorsRepository = overrides?.monitorsRepository ?? createMonitorsRepo();
 	const usersRepository = overrides?.usersRepository ?? createUsersRepo();
 	const notificationMessageBuilder = overrides?.notificationMessageBuilder ?? createMessageBuilder();
+	const notificationsService = overrides?.notificationsService ?? createNotificationsService();
 
-	const service = new IncidentService(logger as any, incidentsRepository, monitorsRepository, usersRepository, notificationMessageBuilder);
-	return { service, logger, incidentsRepository, monitorsRepository, usersRepository, notificationMessageBuilder };
+	const service = new IncidentService(
+		logger as any,
+		incidentsRepository,
+		monitorsRepository,
+		usersRepository,
+		notificationMessageBuilder,
+		notificationsService
+	);
+	return { service, logger, incidentsRepository, monitorsRepository, usersRepository, notificationMessageBuilder, notificationsService };
 };
 
 const makeMonitor = (overrides?: Partial<Monitor>): Monitor =>
@@ -244,6 +259,36 @@ describe("IncidentService", () => {
 					comment: "Fixed it",
 				})
 			);
+		});
+
+		it("notifies the monitor's channels after a manual resolve", async () => {
+			const active = makeIncident();
+			const resolved = makeIncident({ status: false, resolutionType: "manual" });
+			const monitor = makeMonitor({ status: "breached", type: "hardware" });
+			const { service, incidentsRepository, monitorsRepository, notificationsService } = createService();
+			(incidentsRepository.findActiveByIncidentId as jest.Mock).mockResolvedValue(active);
+			(incidentsRepository.updateById as jest.Mock).mockResolvedValue(resolved);
+			(monitorsRepository.findById as jest.Mock).mockResolvedValue(monitor);
+
+			await service.resolveIncident("inc-1", "user-1", "team-1", "Disk cleaned", "user@test.com");
+
+			expect(monitorsRepository.findById).toHaveBeenCalledWith("mon-1", "team-1");
+			expect(notificationsService.sendIncidentResolvedNotification).toHaveBeenCalledWith(monitor, resolved, "user@test.com", "Disk cleaned");
+		});
+
+		it("still resolves when notifying fails", async () => {
+			const active = makeIncident();
+			const resolved = makeIncident({ status: false });
+			const { service, incidentsRepository, monitorsRepository, notificationsService, logger } = createService();
+			(incidentsRepository.findActiveByIncidentId as jest.Mock).mockResolvedValue(active);
+			(incidentsRepository.updateById as jest.Mock).mockResolvedValue(resolved);
+			(monitorsRepository.findById as jest.Mock).mockResolvedValue(makeMonitor());
+			(notificationsService.sendIncidentResolvedNotification as jest.Mock).mockRejectedValue(new Error("discord down") as never);
+
+			const result = await service.resolveIncident("inc-1", "user-1", "team-1");
+
+			expect(result).toBe(resolved);
+			expect(logger.warn).toHaveBeenCalledWith(expect.objectContaining({ method: "notifyManualResolve", message: "discord down" }));
 		});
 
 		it("sets resolvedByEmail and comment to null when not provided", async () => {

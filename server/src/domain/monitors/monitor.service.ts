@@ -18,6 +18,8 @@ import type { GeoContinent } from "@/domain/geo-checks/geo-check.type.js";
 import type { IChecksRepository } from "@/domain/checks/check.repository.interface.js";
 import type { IGeoChecksRepository } from "@/domain/geo-checks/geo-check.repository.interface.js";
 import type { IIncidentsRepository } from "@/domain/incidents/incident.repository.interface.js";
+import type { Incident } from "@/domain/incidents/incident.type.js";
+import type { INotificationsService } from "@/domain/notifications/notification.service.js";
 import type { IMonitorStatsRepository } from "@/domain/monitor-stats/monitor-stats.repository.interface.js";
 import type { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
 import type { IStatusPagesRepository } from "@/domain/status-pages/status-page-repository.interface.js";
@@ -77,7 +79,7 @@ export interface IMonitorService {
 	getAllGames(): GamesMap;
 
 	// update
-	editMonitor(args: { teamId: string; monitorId: string; body: Partial<Monitor> }): Promise<Monitor>;
+	editMonitor(args: { teamId: string; monitorId: string; body: Partial<Monitor>; userEmail?: string | null }): Promise<Monitor>;
 	pauseMonitor(args: { teamId: string; monitorId: string }): Promise<Monitor>;
 	bulkPauseMonitors(args: { teamId: string; monitorIds: string[]; pause: boolean }): Promise<{ monitors: Monitor[]; failedCount: number }>;
 
@@ -105,6 +107,7 @@ export class MonitorService implements IMonitorService {
 	private monitorStatsRepository: IMonitorStatsRepository;
 	private statusPagesRepository: IStatusPagesRepository;
 	private incidentsRepository: IIncidentsRepository;
+	private notificationsService?: INotificationsService;
 
 	constructor({
 		scheduler,
@@ -116,6 +119,7 @@ export class MonitorService implements IMonitorService {
 		monitorStatsRepository,
 		statusPagesRepository,
 		incidentsRepository,
+		notificationsService,
 	}: {
 		scheduler: IJobScheduler;
 		logger: ILogger;
@@ -126,6 +130,8 @@ export class MonitorService implements IMonitorService {
 		monitorStatsRepository: IMonitorStatsRepository;
 		statusPagesRepository: IStatusPagesRepository;
 		incidentsRepository: IIncidentsRepository;
+		/** Optional: lets an ignored-disks edit that clears a breach notify the monitor's channels. */
+		notificationsService?: INotificationsService;
 	}) {
 		this.scheduler = scheduler;
 		this.logger = logger;
@@ -136,6 +142,7 @@ export class MonitorService implements IMonitorService {
 		this.monitorStatsRepository = monitorStatsRepository;
 		this.statusPagesRepository = statusPagesRepository;
 		this.incidentsRepository = incidentsRepository;
+		this.notificationsService = notificationsService;
 	}
 
 	createMonitor = async (teamId: string, userId: string, body: Monitor): Promise<void> => {
@@ -422,7 +429,17 @@ export class MonitorService implements IMonitorService {
 		return this.games;
 	};
 
-	editMonitor = async ({ teamId, monitorId, body }: { teamId: string; monitorId: string; body: Partial<Monitor> }) => {
+	editMonitor = async ({
+		teamId,
+		monitorId,
+		body,
+		userEmail,
+	}: {
+		teamId: string;
+		monitorId: string;
+		body: Partial<Monitor>;
+		userEmail?: string | null;
+	}) => {
 		// Moving off custom mode orphans the stored proxyId. Unset it so the stale reference doesn't block deleting that proxy
 		const unsetProxyId = body.proxyMode !== undefined && body.proxyMode !== "custom";
 		if (unsetProxyId) {
@@ -448,7 +465,12 @@ export class MonitorService implements IMonitorService {
 
 		if (shouldResolveThresholdIncident) {
 			try {
-				await this.resolveThresholdIncident(monitorId, teamId);
+				const resolvedIncident = await this.resolveThresholdIncident(monitorId, teamId);
+				if (resolvedIncident) {
+					// The worker never sees this breached→up flip (we wrote the status
+					// ourselves), so the monitor's channels would otherwise stay silent.
+					await this.notifyIgnoredDisksRecovery(editedMonitor, resolvedIncident, userEmail, body.ignoredDisks ?? []);
+				}
 			} catch (error: unknown) {
 				this.logger.error({
 					message: "Failed to resolve threshold incident after ignored disk update",
@@ -473,17 +495,35 @@ export class MonitorService implements IMonitorService {
 		return editedMonitor;
 	};
 
-	private resolveThresholdIncident = async (monitorId: string, teamId: string): Promise<void> => {
+	private resolveThresholdIncident = async (monitorId: string, teamId: string): Promise<Incident | null> => {
 		const activeIncident = await this.incidentsRepository.findActiveByMonitorId(monitorId, teamId);
 		if (activeIncident?.statusCode !== 9999) {
-			return;
+			return null;
 		}
 
-		await this.incidentsRepository.updateById(activeIncident.id, teamId, {
+		return await this.incidentsRepository.updateById(activeIncident.id, teamId, {
 			status: false,
 			endTime: Date.now().toString(),
 			resolutionType: "automatic",
 		});
+	};
+
+	private notifyIgnoredDisksRecovery = async (monitor: Monitor, incident: Incident, userEmail: string | null | undefined, ignoredDisks: string[]) => {
+		if (!this.notificationsService) {
+			return;
+		}
+		try {
+			const comment = ignoredDisks.length ? `Ignored disks: ${ignoredDisks.join(", ")}` : null;
+			await this.notificationsService.sendIncidentResolvedNotification(monitor, incident, userEmail ?? null, comment, "ignored_disks");
+		} catch (error: unknown) {
+			this.logger.warn({
+				message: "Failed to notify channels after ignored-disk recovery",
+				service: SERVICE_NAME,
+				method: "notifyIgnoredDisksRecovery",
+				details: { monitorId: monitor.id, incidentId: incident.id },
+				stack: error instanceof Error ? error.stack : undefined,
+			});
+		}
 	};
 
 	updateNotifications = async ({
