@@ -1,8 +1,6 @@
 import { type Monitor } from "@/domain/monitors/monitor.type.js";
 import {
-	allHardwareBreachesClear,
-	evaluateHardwareBreaches,
-	metricsFromCheckSnapshot,
+	getHardwareRecoveryPatch,
 } from "@/domain/monitors/hardware-breach.utils.js";
 import type {
 	MonitorType,
@@ -430,59 +428,62 @@ export class MonitorService implements IMonitorService {
 		if (unsetProxyId) {
 			delete body.proxyId;
 		}
-		let editedMonitor = await this.monitorsRepository.updateById(monitorId, teamId, body, { unsetProxyId });
 
-		if (editedMonitor.type === "hardware" && body.ignoredDisks !== undefined) {
-			editedMonitor = await this.reconcileHardwareAfterIgnoredDisksChange(editedMonitor);
+		let patch: Partial<Monitor> = { ...body };
+		let shouldResolveThresholdIncident = false;
+
+		if (body.ignoredDisks !== undefined) {
+			const currentMonitor = await this.monitorsRepository.findById(monitorId, teamId);
+			const recoveryPatch = getHardwareRecoveryPatch(
+				{ ...currentMonitor, ignoredDisks: body.ignoredDisks },
+				body.ignoredDisks
+			);
+			if (recoveryPatch) {
+				patch = { ...patch, ...recoveryPatch };
+				shouldResolveThresholdIncident = true;
+			}
 		}
 
-		await this.scheduler.updateJob(editedMonitor);
-		return editedMonitor;
-	};
+		const editedMonitor = await this.monitorsRepository.updateById(monitorId, teamId, patch, { unsetProxyId });
 
-	private reconcileHardwareAfterIgnoredDisksChange = async (monitor: Monitor): Promise<Monitor> => {
-		if (monitor.status !== "breached") {
-			return monitor;
+		if (shouldResolveThresholdIncident) {
+			try {
+				await this.resolveThresholdIncident(monitorId, teamId);
+			} catch (error: unknown) {
+				this.logger.error({
+					message: "Failed to resolve threshold incident after ignored disk update",
+					service: SERVICE_NAME,
+					method: "editMonitor",
+					stack: error instanceof Error ? error.stack : undefined,
+				});
+			}
 		}
 
-		const latestCheck = monitor.recentChecks?.at(-1);
-		if (!latestCheck) {
-			return monitor;
-		}
-
-		const breaches = evaluateHardwareBreaches({
-			metrics: metricsFromCheckSnapshot(latestCheck),
-			thresholds: {
-				cpu: monitor.cpuAlertThreshold,
-				memory: monitor.memoryAlertThreshold,
-				disk: monitor.diskAlertThreshold,
-				temp: monitor.tempAlertThreshold,
-			},
-			ignoredDisks: monitor.ignoredDisks,
-		});
-
-		if (!allHardwareBreachesClear(breaches)) {
-			return monitor;
-		}
-
-		const updatedMonitor = await this.monitorsRepository.updateById(monitor.id, monitor.teamId, {
-			status: "up",
-			cpuAlertCounter: 5,
-			memoryAlertCounter: 5,
-			diskAlertCounter: 5,
-			tempAlertCounter: 5,
-		});
-
-		const activeIncident = await this.incidentsRepository.findActiveByMonitorId(monitor.id, monitor.teamId);
-		if (activeIncident?.statusCode === 9999) {
-			await this.incidentsRepository.updateById(activeIncident.id, monitor.teamId, {
-				status: false,
-				endTime: Date.now().toString(),
-				resolutionType: "automatic",
+		try {
+			await this.scheduler.updateJob(editedMonitor);
+		} catch (error: unknown) {
+			this.logger.error({
+				message: "Failed to refresh scheduler job after monitor edit",
+				service: SERVICE_NAME,
+				method: "editMonitor",
+				stack: error instanceof Error ? error.stack : undefined,
 			});
 		}
 
-		return updatedMonitor;
+		return editedMonitor;
+	};
+
+	private resolveThresholdIncident = async (monitorId: string, teamId: string): Promise<void> => {
+		const activeIncident = await this.incidentsRepository.findActiveByMonitorId(monitorId, teamId);
+		if (activeIncident?.statusCode !== 9999) {
+			return;
+		}
+
+		await this.incidentsRepository.updateById(activeIncident.id, teamId, {
+			status: false,
+			endTime: Date.now().toString(),
+			resolutionType: "automatic",
+		});
 	};
 
 	updateNotifications = async ({

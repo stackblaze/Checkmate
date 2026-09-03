@@ -919,7 +919,6 @@ describe("MonitorService", () => {
 				cpuAlertThreshold: 90,
 				memoryAlertThreshold: 90,
 				tempAlertThreshold: 100,
-				ignoredDisks: ["index:1"],
 				recentChecks: [
 					{
 						id: "check-1",
@@ -935,10 +934,9 @@ describe("MonitorService", () => {
 					},
 				],
 			});
-			const recoveredMonitor = { ...breachedMonitor, status: "up" };
-			(monitorsRepository.updateById as jest.Mock)
-				.mockResolvedValueOnce(breachedMonitor)
-				.mockResolvedValueOnce(recoveredMonitor);
+			const recoveredMonitor = { ...breachedMonitor, status: "up", ignoredDisks: ["index:1"] };
+			(monitorsRepository.findById as jest.Mock).mockResolvedValue(breachedMonitor);
+			(monitorsRepository.updateById as jest.Mock).mockResolvedValue(recoveredMonitor);
 			(incidentsRepository.findActiveByMonitorId as jest.Mock).mockResolvedValue({
 				id: "incident-1",
 				statusCode: 9999,
@@ -952,14 +950,21 @@ describe("MonitorService", () => {
 				body: { ignoredDisks: ["index:1"] },
 			});
 
-			expect(monitorsRepository.updateById).toHaveBeenCalledTimes(2);
-			expect(monitorsRepository.updateById).toHaveBeenLastCalledWith(MONITOR_ID, TEAM_ID, {
-				status: "up",
-				cpuAlertCounter: 5,
-				memoryAlertCounter: 5,
-				diskAlertCounter: 5,
-				tempAlertCounter: 5,
-			});
+			expect(monitorsRepository.findById).toHaveBeenCalledWith(MONITOR_ID, TEAM_ID);
+			expect(monitorsRepository.updateById).toHaveBeenCalledTimes(1);
+			expect(monitorsRepository.updateById).toHaveBeenCalledWith(
+				MONITOR_ID,
+				TEAM_ID,
+				{
+					ignoredDisks: ["index:1"],
+					status: "up",
+					cpuAlertCounter: 5,
+					memoryAlertCounter: 5,
+					diskAlertCounter: 5,
+					tempAlertCounter: 5,
+				},
+				{ unsetProxyId: false }
+			);
 			expect(incidentsRepository.updateById).toHaveBeenCalled();
 			expect(jobQueue.updateJob).toHaveBeenCalledWith(recoveredMonitor);
 			expect(result.status).toBe("up");
