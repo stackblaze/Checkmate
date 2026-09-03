@@ -56,6 +56,7 @@ import { FormNumberField } from "@/Components/inputs/forms/FormNumberField";
 import { FormTextField } from "@/Components/inputs/forms/FormTextField";
 import { FormRadioGroup } from "@/Components/inputs/forms/FormRadioGroupField";
 import { FormMultiSelectField } from "@/Components/inputs/forms/FormMultiSelectField";
+import { IgnoredDisksField } from "@/Pages/CreateMonitor/IgnoredDisksField";
 import { FormSelectField } from "@/Components/inputs/forms/FormSelectField";
 import { FormSliderField } from "@/Components/inputs/forms/FormSliderField";
 import { FormSwitchField } from "@/Components/inputs/forms/FormSwitchField";
@@ -330,6 +331,20 @@ const CreateMonitorPage = () => {
 		() => getGeneralSettingsConfig(watchedType, t),
 		[watchedType, t]
 	);
+
+	const latestHardwareDisks = useMemo(() => {
+		const checks = existingMonitor?.recentChecks;
+		if (!checks?.length) {
+			return undefined;
+		}
+		for (let i = checks.length - 1; i >= 0; i -= 1) {
+			const disk = checks[i]?.disk;
+			if (disk?.length) {
+				return disk;
+			}
+		}
+		return undefined;
+	}, [existingMonitor?.recentChecks]);
 
 	const { post, loading: isCreating } = usePost<MonitorFormData, Monitor>();
 	const { patch, loading: isUpdating } = usePatch<MonitorFormData, Monitor>();
@@ -751,6 +766,7 @@ const CreateMonitorPage = () => {
 									valueLabelDisplay="auto"
 									valueLabelFormat={(value) => `${value}°C`}
 								/>
+								<IgnoredDisksField disks={latestHardwareDisks} />
 							</Stack>
 						}
 					/>

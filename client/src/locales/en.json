@@ -777,6 +777,14 @@
 						"tempThreshold": {
 							"label": "Temperature alert threshold (°C)"
 						}
+					},
+					"ignoredDisks": {
+						"label": "Ignored disks",
+						"description": "Exclude specific disks from disk usage alerts. Other disks still use the disk threshold above.",
+						"placeholder": "Select disks to ignore",
+						"empty": "Save the monitor and wait for at least one check to report disk metrics, then edit the monitor to pick disks to ignore.",
+						"unknownDevice": "Unknown device",
+						"option": "Disk {{index}} ({{device}}{{mountpoint}}) — {{usage}} used"
 					}
 				},
 				"geoChecks": {

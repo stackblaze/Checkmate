@@ -117,6 +117,7 @@ export const getMonitorDefaults = (
 				diskAlertThreshold: data?.diskAlertThreshold ?? 100,
 				tempAlertThreshold: data?.tempAlertThreshold ?? 100,
 				selectedDisks: data?.selectedDisks || [],
+				ignoredDisks: data?.ignoredDisks || [],
 			};
 			break;
 		case "websocket":

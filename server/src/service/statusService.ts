@@ -1,6 +1,7 @@
 import { IMonitorStatsRepository } from "@/domain/monitor-stats/monitor-stats.repository.interface.js";
 import { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
-import type { Check, CheckDiskInfo } from "@/domain/checks/check.type.js";
+import type { Check } from "@/domain/checks/check.type.js";
+import { filterDisksForAlerts } from "@/domain/monitors/disk-alert.utils.js";
 import { MonitorStatuses, type Monitor, type MonitorStatus } from "@/domain/monitors/monitor.type.js";
 import type {
 	DockerStatusPayload,
@@ -112,24 +113,26 @@ export class StatusService implements IStatusService {
 		metrics: HardwareStatusMetrics;
 		thresholds: { cpu: number; memory: number; disk: number; temp: number };
 		counters: HardwareCounters;
+		ignoredDisks?: string[];
 	}): {
 		nextStatus: MonitorStatus;
 		transitioned: boolean;
 		breaches: HardwareBreaches;
 		nextCounters: HardwareCounters;
 	} => {
-		const { metrics, thresholds, counters, currentStatus, reachabilityDown } = params;
+		const { metrics, thresholds, counters, currentStatus, reachabilityDown, ignoredDisks } = params;
 
 		const cpuUsage = metrics.cpu?.usage_percent ?? -1;
 		const memoryUsage = metrics.memory?.usage_percent ?? -1;
 		const temps = metrics.cpu?.temperature ?? [];
+		const disksForAlerts = filterDisksForAlerts(metrics.disk, ignoredDisks);
 
 		const breaches: HardwareBreaches = {
 			cpu: cpuUsage !== -1 && cpuUsage > thresholds.cpu / 100,
 			memory: memoryUsage !== -1 && memoryUsage > thresholds.memory / 100,
-			disk: metrics.disk
-				? metrics.disk.some((d: CheckDiskInfo) => d != null && typeof d.usage_percent === "number" && d.usage_percent > thresholds.disk / 100)
-				: false,
+			disk: disksForAlerts.some(
+				(d) => d != null && typeof d.usage_percent === "number" && d.usage_percent > thresholds.disk / 100
+			),
 			temp: temps.some((temp: number) => temp > thresholds.temp),
 		};
 
@@ -255,6 +258,7 @@ export class StatusService implements IStatusService {
 						disk: monitor.diskAlertCounter,
 						temp: monitor.tempAlertCounter,
 					},
+					ignoredDisks: monitor.ignoredDisks,
 				});
 
 				patch.cpuAlertCounter = hardware.nextCounters.cpu;

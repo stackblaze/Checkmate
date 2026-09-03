@@ -1,4 +1,5 @@
 import type { Monitor } from "@/domain/monitors/monitor.type.js";
+import { filterDisksForAlerts } from "@/domain/monitors/disk-alert.utils.js";
 import type { HardwareStatusPayload, MonitorStatusResponse } from "@/types/network.js";
 import type { MonitorActionDecision } from "@/worker/worker.helper.js";
 import type {
@@ -234,9 +235,9 @@ export class NotificationMessageBuilder implements INotificationMessageBuilder {
 
 		// Disk threshold breach
 		if (monitor.diskAlertThreshold !== undefined && monitor.diskAlertThreshold !== null && Array.isArray(hardware.disk)) {
-			// Find the highest disk usage
+			const disksForAlerts = filterDisksForAlerts(hardware.disk, monitor.ignoredDisks);
 			let maxDiskUsageDecimal = 0;
-			for (const disk of hardware.disk) {
+			for (const disk of disksForAlerts) {
 				if (disk.usage_percent !== undefined && disk.usage_percent > maxDiskUsageDecimal) {
 					maxDiskUsageDecimal = disk.usage_percent;
 				}

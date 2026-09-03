@@ -469,6 +469,7 @@ const infrastructureMonitorValidation = joi.object({
 	}),
 	notifications: joi.array().items(joi.string()),
 	selectedDisks: joi.array().items(joi.string()).optional(),
+	ignoredDisks: joi.array().items(joi.string()).optional(),
 });
 
 const notificationValidation = joi.object({

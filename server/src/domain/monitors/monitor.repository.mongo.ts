@@ -446,6 +446,7 @@ class MongoMonitorsRepository implements IMonitorsRepository {
 			tempAlertThreshold: doc.tempAlertThreshold,
 			tempAlertCounter: doc.tempAlertCounter,
 			selectedDisks: doc.selectedDisks ?? [],
+			ignoredDisks: doc.ignoredDisks ?? [],
 			gameId: doc.gameId ?? undefined,
 			grpcServiceName: doc.grpcServiceName ?? undefined,
 			strategy: doc.strategy ?? undefined,

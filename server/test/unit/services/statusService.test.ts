@@ -1163,6 +1163,7 @@ describe("StatusService", () => {
 			metrics: any;
 			thresholds: { cpu: number; memory: number; disk: number; temp: number };
 			counters: { cpu: number; memory: number; disk: number; temp: number };
+			ignoredDisks?: string[];
 		};
 
 		const healthyMetrics = () => ({
@@ -1209,6 +1210,14 @@ describe("StatusService", () => {
 		it("detects disk breach when any disk exceeds threshold", () => {
 			const r = compute({ metrics: { ...healthyMetrics(), disk: [{ usage_percent: 0.1 }, { usage_percent: 0.95 }] } });
 			expect(r.breaches.disk).toBe(true);
+		});
+
+		it("ignores disks listed in ignoredDisks", () => {
+			const r = compute({
+				metrics: { ...healthyMetrics(), disk: [{ device: "/dev/sda", usage_percent: 0.1 }, { device: "/dev/sdb", usage_percent: 0.95 }] },
+				ignoredDisks: ["/dev/sdb"],
+			});
+			expect(r.breaches.disk).toBe(false);
 		});
 
 		it("skips null disk entries", () => {

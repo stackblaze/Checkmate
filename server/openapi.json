@@ -520,6 +520,12 @@
               "type": "string"
             }
           },
+          "ignoredDisks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "gameId": {
             "type": "string"
           },
@@ -601,6 +607,7 @@
           "diskAlertThreshold",
           "tempAlertThreshold",
           "selectedDisks",
+          "ignoredDisks",
           "geoCheckEnabled",
           "geoCheckLocations",
           "geoCheckInterval",
@@ -635,6 +642,7 @@
           "diskAlertThreshold": 90,
           "tempAlertThreshold": 80,
           "selectedDisks": [],
+          "ignoredDisks": [],
           "geoCheckEnabled": false,
           "geoCheckLocations": [],
           "geoCheckInterval": 300000,
@@ -784,6 +792,12 @@
                       "type": "string"
                     }
                   },
+                  "ignoredDisks": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "gameId": {
                     "type": "string"
                   },
@@ -867,6 +881,7 @@
                   "diskAlertThreshold",
                   "tempAlertThreshold",
                   "selectedDisks",
+                  "ignoredDisks",
                   "geoCheckEnabled",
                   "geoCheckLocations",
                   "geoCheckInterval",
@@ -8796,6 +8811,12 @@
                                 "type": "string"
                               }
                             },
+                            "ignoredDisks": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
                             "gameId": {
                               "type": "string"
                             },
@@ -8879,6 +8900,7 @@
                             "diskAlertThreshold",
                             "tempAlertThreshold",
                             "selectedDisks",
+                            "ignoredDisks",
                             "geoCheckEnabled",
                             "geoCheckLocations",
                             "geoCheckInterval",
@@ -10454,6 +10476,12 @@
                       "type": "string"
                     }
                   },
+                  "ignoredDisks": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "group": {
                     "anyOf": [
                       {
@@ -11266,6 +11294,13 @@
                           },
                           "default": []
                         },
+                        "ignoredDisks": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "default": []
+                        },
                         "gameId": {
                           "anyOf": [
                             {
@@ -11991,6 +12026,12 @@
                     ]
                   },
                   "selectedDisks": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ignoredDisks": {
                     "type": "array",
                     "items": {
                       "type": "string"

@@ -47,6 +47,7 @@ const monitorObject = monitorResponseSchema.openapi("Monitor", {
 		diskAlertThreshold: 90,
 		tempAlertThreshold: 80,
 		selectedDisks: [],
+		ignoredDisks: [],
 		geoCheckEnabled: false,
 		geoCheckLocations: [],
 		geoCheckInterval: 300000,

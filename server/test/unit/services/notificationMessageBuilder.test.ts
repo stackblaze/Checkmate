@@ -595,6 +595,26 @@ describe("NotificationMessageBuilder", () => {
 				expect(breaches.find((b) => b.metric === "disk")).toBeUndefined();
 			});
 
+			it("ignores disks listed in ignoredDisks when evaluating breach", () => {
+				const monitor = makeMonitor({
+					type: "hardware",
+					diskAlertThreshold: 80,
+					ignoredDisks: ["/dev/sdb"],
+				});
+				const response = makeStatusResponse({
+					payload: makeHardwarePayload({
+						disk: [
+							{ device: "/dev/sda", usage_percent: 0.5 },
+							{ device: "/dev/sdb", usage_percent: 0.95 },
+						] as any,
+					}),
+				} as any);
+
+				const breaches = builder.extractThresholdBreaches(monitor, response);
+
+				expect(breaches.find((b) => b.metric === "disk")).toBeUndefined();
+			});
+
 			it("skips disk check when diskAlertThreshold is undefined", () => {
 				const monitor = makeMonitor({ type: "hardware", diskAlertThreshold: undefined });
 				const response = makeStatusResponse({

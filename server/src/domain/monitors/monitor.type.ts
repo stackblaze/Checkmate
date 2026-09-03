@@ -101,6 +101,7 @@ export interface Monitor {
 	tempAlertThreshold: number;
 	tempAlertCounter: number;
 	selectedDisks: string[];
+	ignoredDisks: string[];
 	gameId?: string;
 	grpcServiceName?: string;
 	strategy?: PageSpeedStrategy;
