@@ -19,6 +19,11 @@ function buildDefaults(data: Notification | null): NotificationFormData {
 		homeserverUrl: data?.homeserverUrl || "",
 		roomId: data?.roomId || "",
 		topic: data?.topic || "",
+		webhookRoutes: data?.webhookRoutes ?? [],
+		alsoNotifyDefault: data?.alsoNotifyDefault ?? false,
+		discordUsername: data?.discordUsername || "",
+		discordAvatarUrl: data?.discordAvatarUrl || "",
+		discordMention: data?.discordMention || "",
 	};
 }
 

@@ -56,6 +56,18 @@ const NotificationSchema = new Schema<NotificationDocument>(
 		topic: { type: String },
 		ntfyAuthType: { type: String, enum: NtfyAuthTypes },
 		ntfyUsername: { type: String },
+		webhookRoutes: [
+			{
+				_id: false,
+				name: { type: String },
+				address: { type: String, required: true },
+				tagIds: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
+			},
+		],
+		alsoNotifyDefault: { type: Boolean, default: false },
+		discordUsername: { type: String },
+		discordAvatarUrl: { type: String },
+		discordMention: { type: String },
 	},
 	{
 		timestamps: true,

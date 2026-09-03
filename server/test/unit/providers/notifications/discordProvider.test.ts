@@ -128,5 +128,37 @@ describe("DiscordProvider", () => {
 			expect(fields.some((f: any) => f.name === "Threshold Breaches")).toBe(false);
 			expect(fields.some((f: any) => f.name === "Details")).toBe(false);
 		});
+
+		it("posts to tag-matched webhooks instead of the default", async () => {
+			const { provider } = createProvider();
+			const notification = makeNotification({
+				address: "https://discord.com/api/webhooks/default",
+				webhookRoutes: [{ address: "https://discord.com/api/webhooks/kamaji", tagIds: ["tag-kamaji"] }],
+			});
+			await provider.sendMessage(
+				notification as any,
+				makeMessage({ metadata: { teamId: "team-1", notificationReason: "status_change", tagIds: ["tag-kamaji"] } })
+			);
+			expect(mockGotPost).toHaveBeenCalledTimes(1);
+			expect(mockGotPost).toHaveBeenCalledWith("https://discord.com/api/webhooks/kamaji", expect.anything());
+		});
+
+		it("includes Discord webhook presentation options", async () => {
+			const { provider } = createProvider();
+			const notification = makeNotification({
+				discordUsername: "Checkmate",
+				discordAvatarUrl: "https://example.com/avatar.png",
+				discordMention: "@here",
+			});
+			await provider.sendMessage(notification as any, makeMessage());
+			expect(mockGotPost.mock.calls[0][1].json).toEqual(
+				expect.objectContaining({
+					username: "Checkmate",
+					avatar_url: "https://example.com/avatar.png",
+					content: "@here",
+					embeds: expect.any(Array),
+				})
+			);
+		});
 	});
 });

@@ -37,7 +37,21 @@ const notificationVariantMeta: Record<string, { component: string; example: Reco
 	},
 	discord: {
 		component: "DiscordNotification",
-		example: { notificationName: "#status", type: "discord", address: "https://discord.com/api/webhooks/123/abc" },
+		example: {
+			notificationName: "#status",
+			type: "discord",
+			address: "https://discord.com/api/webhooks/123/abc",
+			discordUsername: "Checkmate",
+			discordMention: "@here",
+			alsoNotifyDefault: false,
+			webhookRoutes: [
+				{
+					name: "Kamaji",
+					address: "https://discord.com/api/webhooks/456/kamaji",
+					tagIds: ["64b7f0c2e1a2b3c4d5e6f7a8"],
+				},
+			],
+		},
 	},
 	pager_duty: {
 		component: "PagerDutyNotification",

@@ -72,6 +72,13 @@ export const NotificationsTable = ({
 				id: "destination",
 				content: t("pages.notifications.table.headers.destination"),
 				render: (row) => {
+					const routeCount = row?.webhookRoutes?.length ?? 0;
+					const destination =
+						routeCount > 0
+							? t("pages.notifications.table.destinationWithRoutes", {
+									count: routeCount,
+								})
+							: row?.address;
 					return (
 						<Box sx={{ maxWidth: 320, mx: "auto" }}>
 							<Typography
@@ -85,7 +92,7 @@ export const NotificationsTable = ({
 									textOverflow: "ellipsis",
 								}}
 							>
-								{row?.address}
+								{destination}
 							</Typography>
 						</Box>
 					);

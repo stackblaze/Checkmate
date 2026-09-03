@@ -19,6 +19,12 @@ export type NotificationChannel = (typeof NotificationChannels)[number];
 export const NtfyAuthTypes = ["none", "token", "basic"] as const;
 export type NtfyAuthType = (typeof NtfyAuthTypes)[number];
 
+export interface WebhookRoute {
+	name?: string;
+	address: string;
+	tagIds: string[];
+}
+
 export interface Notification {
 	id: string;
 	userId: string;
@@ -35,6 +41,11 @@ export interface Notification {
 	topic?: string;
 	ntfyAuthType?: NtfyAuthType;
 	ntfyUsername?: string;
+	webhookRoutes?: WebhookRoute[];
+	alsoNotifyDefault?: boolean;
+	discordUsername?: string;
+	discordAvatarUrl?: string;
+	discordMention?: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -117,5 +128,6 @@ export interface NotificationMessage {
 	metadata: {
 		teamId: string;
 		notificationReason: string;
+		tagIds?: string[];
 	};
 }

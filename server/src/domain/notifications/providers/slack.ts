@@ -3,6 +3,7 @@ import type { Notification } from "@/domain/notifications/notification.type.js";
 import { NotificationProvider } from "@/domain/notifications/providers/INotificationProvider.js";
 import type { NotificationMessage } from "@/domain/notifications/notification.type.js";
 import { getTestMessage } from "@/domain/notifications/providers/utils.js";
+import { resolveWebhookAddresses } from "@/domain/notifications/notification.webhook-routes.js";
 import got, { HTTPError } from "got";
 
 export class SlackProvider extends NotificationProvider {
@@ -36,14 +37,19 @@ export class SlackProvider extends NotificationProvider {
 	 * New unified message format - builds Slack Block Kit payload from NotificationMessage
 	 */
 	async sendMessage(notification: Notification, message: NotificationMessage): Promise<boolean> {
-		if (!notification.address) {
+		const addresses = resolveWebhookAddresses(notification, message.metadata.tagIds ?? []);
+		if (addresses.length === 0) {
 			return false;
 		}
 
 		const payload = this.buildSlackPayload(message);
+		const outcomes = await Promise.all(addresses.map((address) => this.postWebhook(address, payload)));
+		return outcomes.every(Boolean);
+	}
 
+	private async postWebhook(address: string, payload: object): Promise<boolean> {
 		try {
-			await got.post(notification.address, {
+			await got.post(address, {
 				json: payload,
 				headers: {
 					"Content-Type": "application/json",

@@ -28,6 +28,15 @@ class MongoNotificationsRepository implements INotificationsRepository {
 			accountSid: doc.accountSid ?? undefined,
 			twilioPhoneNumber: doc.twilioPhoneNumber ?? undefined,
 			topic: doc.topic ?? undefined,
+			webhookRoutes: (doc.webhookRoutes ?? []).map((route) => ({
+				name: route.name || undefined,
+				address: route.address,
+				tagIds: (route.tagIds ?? []).map((tagId) => toStringId(tagId)),
+			})),
+			alsoNotifyDefault: doc.alsoNotifyDefault ?? false,
+			discordUsername: doc.discordUsername || undefined,
+			discordAvatarUrl: doc.discordAvatarUrl || undefined,
+			discordMention: doc.discordMention || undefined,
 			createdAt: toDateString(doc.createdAt),
 			updatedAt: toDateString(doc.updatedAt),
 		};

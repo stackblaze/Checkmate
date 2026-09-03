@@ -1,6 +1,19 @@
 import { z } from "zod";
 import { NtfyAuthTypes } from "@/domain/notifications/notification.type.js";
 
+const optionalText = z.union([z.string(), z.literal("")]).optional();
+
+const webhookRouteSchema = z.object({
+	name: optionalText,
+	address: z.url({ message: "Please enter a valid Webhook URL" }),
+	tagIds: z.array(z.string().min(1)).min(1, "Select at least one tag"),
+});
+
+const webhookRoutingFields = {
+	webhookRoutes: z.array(webhookRouteSchema).optional(),
+	alsoNotifyDefault: z.boolean().optional(),
+};
+
 //****************************************
 // Notification Validations
 //****************************************
@@ -57,6 +70,7 @@ export const createNotificationBodyValidation = z.discriminatedUnion("type", [
 		homeserverUrl: z.union([z.string(), z.literal("")]).optional(),
 		roomId: z.union([z.string(), z.literal("")]).optional(),
 		accessToken: z.union([z.string(), z.literal("")]).optional(),
+		...webhookRoutingFields,
 	}),
 	// Rocket.Chat notification
 	z.object({
@@ -75,6 +89,7 @@ export const createNotificationBodyValidation = z.discriminatedUnion("type", [
 		homeserverUrl: z.union([z.string(), z.literal("")]).optional(),
 		roomId: z.union([z.string(), z.literal("")]).optional(),
 		accessToken: z.union([z.string(), z.literal("")]).optional(),
+		...webhookRoutingFields,
 	}),
 	// Discord notification
 	z.object({
@@ -84,6 +99,10 @@ export const createNotificationBodyValidation = z.discriminatedUnion("type", [
 		homeserverUrl: z.union([z.string(), z.literal("")]).optional(),
 		roomId: z.union([z.string(), z.literal("")]).optional(),
 		accessToken: z.union([z.string(), z.literal("")]).optional(),
+		discordUsername: optionalText,
+		discordAvatarUrl: z.union([z.url({ message: "Please enter a valid avatar URL" }), z.literal("")]).optional(),
+		discordMention: optionalText,
+		...webhookRoutingFields,
 	}),
 	// PagerDuty notification
 	z.object({

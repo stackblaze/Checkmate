@@ -4,6 +4,7 @@ import { supportsUptimeDetails } from "@/domain/monitors/monitor.type.js";
 import type { AlertDiscordPayload, DiscordEmbedField, Notification } from "@/domain/notifications/notification.type.js";
 import { NotificationProvider } from "@/domain/notifications/providers/INotificationProvider.js";
 import { getTestMessage } from "@/domain/notifications/providers/utils.js";
+import { resolveWebhookAddresses } from "@/domain/notifications/notification.webhook-routes.js";
 import type { NotificationMessage, NotificationSeverity } from "@/domain/notifications/notification.type.js";
 import got from "got";
 
@@ -14,7 +15,7 @@ export class DiscordProvider extends NotificationProvider {
 		}
 		try {
 			await got.post(notification.address, {
-				json: { content: getTestMessage() },
+				json: this.buildWebhookBody({ content: getTestMessage() }, notification),
 				headers: {
 					"Content-Type": "application/json",
 				},
@@ -34,7 +35,8 @@ export class DiscordProvider extends NotificationProvider {
 	};
 
 	async sendMessage(notification: Notification, message: NotificationMessage): Promise<boolean> {
-		if (!notification.address) {
+		const addresses = resolveWebhookAddresses(notification, message.metadata.tagIds ?? []);
+		if (addresses.length === 0) {
 			this.logger.warn({
 				message: "Discord notification missing webhook URL",
 				service: SERVICE_NAME,
@@ -44,10 +46,32 @@ export class DiscordProvider extends NotificationProvider {
 		}
 
 		const embed = this.buildDiscordEmbed(message);
+		const body = this.buildWebhookBody({ embeds: [embed] }, notification);
 
+		const outcomes = await Promise.all(addresses.map((address) => this.postWebhook(address, body)));
+		return outcomes.every(Boolean);
+	}
+
+	private buildWebhookBody(payload: Record<string, unknown>, notification: Partial<Notification>): Record<string, unknown> {
+		const body: Record<string, unknown> = { ...payload };
+		if (notification.discordUsername) {
+			body.username = notification.discordUsername;
+		}
+		if (notification.discordAvatarUrl) {
+			body.avatar_url = notification.discordAvatarUrl;
+		}
+		if (notification.discordMention && !body.content) {
+			body.content = notification.discordMention;
+		} else if (notification.discordMention && typeof body.content === "string") {
+			body.content = `${notification.discordMention} ${body.content}`;
+		}
+		return body;
+	}
+
+	private async postWebhook(address: string, body: Record<string, unknown>): Promise<boolean> {
 		try {
-			await got.post(notification.address, {
-				json: { embeds: [embed] },
+			await got.post(address, {
+				json: body,
 				headers: {
 					"Content-Type": "application/json",
 				},

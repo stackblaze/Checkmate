@@ -55,6 +55,7 @@
 			"reset": "Reset",
 			"clear": "Clear",
 			"addDemo": "Add demo monitors",
+			"addWebhook": "Add webhook",
 			"removeMonitors": "Remove monitors",
 			"sendTestEmail": "Send test email",
 			"exportToJSON": "Export to JSON",
@@ -1246,7 +1247,31 @@
 					"optionAddress": "Address",
 					"placeholderEmail": "example@example.com",
 					"placeholderWebhook": "https://your-server.com/webhook",
-					"title": "Address"
+					"title": "Address",
+					"defaultWebhookTitle": "Default webhook",
+					"defaultWebhookDescription": "Used when a monitor has no matching tag route. Create a Discord webhook in channel settings and paste the URL here."
+				},
+				"discordOptions": {
+					"title": "Discord webhook options",
+					"description": "Optional display name, avatar, and mention sent with every Discord alert.",
+					"optionUsername": "Webhook username",
+					"placeholderUsername": "Checkmate",
+					"optionAvatar": "Avatar URL",
+					"placeholderAvatar": "https://example.com/avatar.png",
+					"optionMention": "Mention",
+					"placeholderMention": "@here or <@&roleId>"
+				},
+				"webhookRoutes": {
+					"title": "Tag routing",
+					"description": "Send alerts to different webhooks when a monitor has matching tags. Monitors that do not match any route use the default webhook above.",
+					"optionName": "Route name",
+					"placeholderName": "e.g. Kamaji alerts",
+					"optionAddress": "Webhook URL",
+					"placeholderAddress": "https://discord.com/api/webhooks/…",
+					"optionTags": "Tags",
+					"placeholderTags": "Select tags for this channel",
+					"alsoNotifyDefault": "Also send to the default webhook when a tag route matches",
+					"empty": "No tag routes yet. Alerts will use the default webhook."
 				},
 				"homeServer": {
 					"optionHomeServer": "Home server",
@@ -1331,7 +1356,9 @@
 			"table": {
 				"headers": {
 					"destination": "Destination"
-				}
+				},
+				"destinationWithRoutes": "Default + {{count}} tag route",
+				"destinationWithRoutes_other": "Default + {{count}} tag routes"
 			},
 			"header": {
 				"title": "Notifications",

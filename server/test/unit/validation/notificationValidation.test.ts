@@ -109,4 +109,49 @@ describe("notification validation", () => {
 			expect(parseNtfy({ address: "not-a-url" }).success).toBe(false);
 		});
 	});
+
+	describe("discord webhook routing", () => {
+		const parseDiscord = (overrides: Record<string, unknown>) =>
+			createNotificationBodyValidation.safeParse({
+				notificationName: "Discord alerts",
+				type: "discord",
+				address: "https://discord.com/api/webhooks/1/default",
+				...overrides,
+			});
+
+		it("accepts a default webhook with no tag routes", () => {
+			expect(parseDiscord({}).success).toBe(true);
+		});
+
+		it("accepts tag-routed webhooks and Discord presentation options", () => {
+			const result = parseDiscord({
+				discordUsername: "Checkmate",
+				discordAvatarUrl: "https://example.com/avatar.png",
+				discordMention: "@here",
+				alsoNotifyDefault: true,
+				webhookRoutes: [
+					{
+						name: "Kamaji",
+						address: "https://discord.com/api/webhooks/2/kamaji",
+						tagIds: ["64b7f0c2e1a2b3c4d5e6f7a8"],
+					},
+				],
+			});
+			expect(result.success).toBe(true);
+		});
+
+		it("rejects a tag route without tags", () => {
+			const result = parseDiscord({
+				webhookRoutes: [{ address: "https://discord.com/api/webhooks/2/kamaji", tagIds: [] }],
+			});
+			expect(result.success).toBe(false);
+		});
+
+		it("rejects a tag route with an invalid webhook URL", () => {
+			const result = parseDiscord({
+				webhookRoutes: [{ address: "not-a-url", tagIds: ["tag-1"] }],
+			});
+			expect(result.success).toBe(false);
+		});
+	});
 });

@@ -90,7 +90,14 @@ describe("NotificationMessageBuilder", () => {
 			expect(msg.metadata).toEqual({
 				teamId: "team-1",
 				notificationReason: "status_change",
+				tagIds: [],
 			});
+		});
+
+		it("includes monitor tag ids for webhook routing", () => {
+			const monitor = makeMonitor({ status: "down", tags: ["tag-kamaji", "tag-east"] });
+			const msg = builder.buildMessage(monitor, makeStatusResponse(), makeDecision(), "https://app.example.com");
+			expect(msg.metadata.tagIds).toEqual(["tag-kamaji", "tag-east"]);
 		});
 
 		it("builds a monitor_up message", () => {

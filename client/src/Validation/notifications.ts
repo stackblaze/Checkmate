@@ -15,19 +15,38 @@ const emailSchema = baseSchema.extend({
 		.email("Please enter a valid email address"),
 });
 
+const webhookRouteSchema = z.object({
+	name: z.string().optional(),
+	address: z.string().min(1, "Webhook URL is required").url("Please enter a valid URL"),
+	tagIds: z.array(z.string()).min(1, "Select at least one tag"),
+});
+
+const webhookRoutingFields = {
+	webhookRoutes: z.array(webhookRouteSchema).optional(),
+	alsoNotifyDefault: z.boolean().optional(),
+};
+
 const slackSchema = baseSchema.extend({
 	type: z.literal("slack"),
 	address: z.string().min(1, "Webhook URL is required").url("Please enter a valid URL"),
+	...webhookRoutingFields,
 });
 
 const discordSchema = baseSchema.extend({
 	type: z.literal("discord"),
 	address: z.string().min(1, "Webhook URL is required").url("Please enter a valid URL"),
+	discordUsername: z.string().optional(),
+	discordAvatarUrl: z
+		.union([z.string().url("Please enter a valid URL"), z.literal("")])
+		.optional(),
+	discordMention: z.string().optional(),
+	...webhookRoutingFields,
 });
 
 const webhookSchema = baseSchema.extend({
 	type: z.literal("webhook"),
 	address: z.string().min(1, "Webhook URL is required").url("Please enter a valid URL"),
+	...webhookRoutingFields,
 });
 
 const rocketChatSchema = baseSchema.extend({

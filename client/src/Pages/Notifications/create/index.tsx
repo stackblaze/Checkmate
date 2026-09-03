@@ -16,6 +16,8 @@ import { useTranslation } from "react-i18next";
 import { NotificationChannels } from "@/Types/Notification";
 import { FormTextField } from "@/Components/inputs/forms/FormTextField";
 import { FormSelectField } from "@/Components/inputs/forms/FormSelectField";
+import { WebhookRoutesField } from "./WebhookRoutesField";
+import type { Tag } from "@/Types/Tag";
 
 const NotificationsCreatePage = () => {
 	const { t } = useTranslation();
@@ -27,6 +29,7 @@ const NotificationsCreatePage = () => {
 	const { data: existingNotification } = useGet<Notification>(
 		isEditMode ? `/notifications/${notificationId}` : null
 	);
+	const { data: tags } = useGet<Tag[]>("/tags/team");
 
 	const { post, loading: isSubmitting } = usePost<NotificationFormData, Notification>();
 	const { patch, loading: isPatching } = usePatch<NotificationFormData, Notification>();
@@ -66,6 +69,18 @@ const NotificationsCreatePage = () => {
 				description: t("pages.notifications.form.address.description"),
 				fieldLabel: t("pages.notifications.form.address.optionAddress"),
 				placeholder: t("pages.notifications.form.address.placeholderEmail"),
+			};
+		}
+		if (
+			watchedType === "discord" ||
+			watchedType === "webhook" ||
+			watchedType === "slack"
+		) {
+			return {
+				title: t("pages.notifications.form.address.defaultWebhookTitle"),
+				description: t("pages.notifications.form.address.defaultWebhookDescription"),
+				fieldLabel: t("pages.notifications.form.address.optionAddress"),
+				placeholder: t("pages.notifications.form.address.placeholderWebhook"),
 			};
 		}
 		return {
@@ -228,6 +243,46 @@ const NotificationsCreatePage = () => {
 									name="phone"
 									fieldLabel={t("pages.notifications.form.twilio.optionToNumber")}
 									placeholder={t("pages.notifications.form.twilio.placeholderToNumber")}
+								/>
+							</Stack>
+						}
+					/>
+				)}
+				{(watchedType === "discord" ||
+					watchedType === "webhook" ||
+					watchedType === "slack") && (
+					<ConfigBox
+						title={t("pages.notifications.form.webhookRoutes.title")}
+						subtitle={t("pages.notifications.form.webhookRoutes.description")}
+						rightContent={<WebhookRoutesField tags={tags ?? []} />}
+					/>
+				)}
+				{watchedType === "discord" && (
+					<ConfigBox
+						title={t("pages.notifications.form.discordOptions.title")}
+						subtitle={t("pages.notifications.form.discordOptions.description")}
+						rightContent={
+							<Stack spacing={theme.spacing(8)}>
+								<FormTextField
+									name="discordUsername"
+									fieldLabel={t("pages.notifications.form.discordOptions.optionUsername")}
+									placeholder={t(
+										"pages.notifications.form.discordOptions.placeholderUsername"
+									)}
+								/>
+								<FormTextField
+									name="discordAvatarUrl"
+									fieldLabel={t("pages.notifications.form.discordOptions.optionAvatar")}
+									placeholder={t(
+										"pages.notifications.form.discordOptions.placeholderAvatar"
+									)}
+								/>
+								<FormTextField
+									name="discordMention"
+									fieldLabel={t("pages.notifications.form.discordOptions.optionMention")}
+									placeholder={t(
+										"pages.notifications.form.discordOptions.placeholderMention"
+									)}
 								/>
 							</Stack>
 						}

@@ -3,19 +3,24 @@ import type { Notification } from "@/domain/notifications/notification.type.js";
 import { NotificationProvider } from "@/domain/notifications/providers/INotificationProvider.js";
 import type { NotificationMessage } from "@/domain/notifications/notification.type.js";
 import { getTestMessage } from "@/domain/notifications/providers/utils.js";
+import { resolveWebhookAddresses } from "@/domain/notifications/notification.webhook-routes.js";
 import got from "got";
 
 export class WebhookProvider extends NotificationProvider {
 	sendMessage = async (notification: Notification, message: NotificationMessage): Promise<boolean> => {
-		if (!notification.address) {
+		const addresses = resolveWebhookAddresses(notification, message.metadata.tagIds ?? []);
+		if (addresses.length === 0) {
 			return false;
 		}
 
-		// Build webhook payload from unified message
 		const payload = this.buildWebhookPayload(message);
+		const outcomes = await Promise.all(addresses.map((address) => this.postWebhook(address, payload)));
+		return outcomes.every(Boolean);
+	};
 
+	private async postWebhook(address: string, payload: object): Promise<boolean> {
 		try {
-			await got.post(notification.address, {
+			await got.post(address, {
 				json: payload,
 				headers: {
 					"Content-Type": "application/json",
@@ -38,7 +43,7 @@ export class WebhookProvider extends NotificationProvider {
 			});
 			return false;
 		}
-	};
+	}
 
 	private buildWebhookPayload(message: NotificationMessage): object {
 		const lines: string[] = [];

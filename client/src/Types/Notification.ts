@@ -14,6 +14,12 @@ export const NotificationChannels = [
 ] as const;
 export type NotificationChannel = (typeof NotificationChannels)[number];
 
+export interface WebhookRoute {
+	name?: string;
+	address: string;
+	tagIds: string[];
+}
+
 export interface Notification {
 	id: string;
 	userId: string;
@@ -28,6 +34,11 @@ export interface Notification {
 	accountSid?: string;
 	twilioPhoneNumber?: string;
 	topic?: string;
+	webhookRoutes?: WebhookRoute[];
+	alsoNotifyDefault?: boolean;
+	discordUsername?: string;
+	discordAvatarUrl?: string;
+	discordMention?: string;
 	createdAt: string;
 	updatedAt: string;
 }
