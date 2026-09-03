@@ -1,7 +1,7 @@
 import { IMonitorStatsRepository } from "@/domain/monitor-stats/monitor-stats.repository.interface.js";
 import { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
 import type { Check } from "@/domain/checks/check.type.js";
-import { filterDisksForAlerts } from "@/domain/monitors/disk-alert.utils.js";
+import { evaluateHardwareBreaches } from "@/domain/monitors/hardware-breach.utils.js";
 import { MonitorStatuses, type Monitor, type MonitorStatus } from "@/domain/monitors/monitor.type.js";
 import type {
 	DockerStatusPayload,
@@ -122,19 +122,11 @@ export class StatusService implements IStatusService {
 	} => {
 		const { metrics, thresholds, counters, currentStatus, reachabilityDown, ignoredDisks } = params;
 
-		const cpuUsage = metrics.cpu?.usage_percent ?? -1;
-		const memoryUsage = metrics.memory?.usage_percent ?? -1;
-		const temps = metrics.cpu?.temperature ?? [];
-		const disksForAlerts = filterDisksForAlerts(metrics.disk, ignoredDisks);
-
-		const breaches: HardwareBreaches = {
-			cpu: cpuUsage !== -1 && cpuUsage > thresholds.cpu / 100,
-			memory: memoryUsage !== -1 && memoryUsage > thresholds.memory / 100,
-			disk: disksForAlerts.some(
-				(d) => d != null && typeof d.usage_percent === "number" && d.usage_percent > thresholds.disk / 100
-			),
-			temp: temps.some((temp: number) => temp > thresholds.temp),
-		};
+		const breaches = evaluateHardwareBreaches({
+			metrics,
+			thresholds,
+			ignoredDisks,
+		});
 
 		// Update counters: decrement (floored at 0) if breached, reset to start otherwise.
 		const nextCounters = { ...counters };

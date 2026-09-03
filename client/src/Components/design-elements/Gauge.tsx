@@ -17,6 +17,7 @@ interface GaugeProps extends Omit<BoxProps, "color"> {
 	strokeWidth?: number;
 	precision?: number;
 	unit?: string;
+	strokeColor?: string;
 }
 
 export const Gauge = forwardRef<HTMLDivElement, GaugeProps>(function Gauge(
@@ -27,6 +28,7 @@ export const Gauge = forwardRef<HTMLDivElement, GaugeProps>(function Gauge(
 		strokeWidth = 15,
 		precision = 1,
 		unit = "%",
+		strokeColor: strokeColorOverride,
 		...rest
 	},
 	ref
@@ -54,7 +56,7 @@ export const Gauge = forwardRef<HTMLDivElement, GaugeProps>(function Gauge(
 		return () => clearTimeout(timer);
 	}, [circumference, strokeLength]);
 
-	const fillColor = getInfraGaugeColor(progressWithinRange, theme);
+	const fillColor = strokeColorOverride ?? getInfraGaugeColor(progressWithinRange, theme);
 
 	if (isLoading) {
 		return null;
@@ -124,6 +126,8 @@ export const DetailGauge = ({
 	lowerValue,
 	maxWidth = 225,
 	flexBasis = "0%",
+	titleAdornment,
+	strokeColor,
 }: {
 	title: string;
 	progress: number;
@@ -133,12 +137,15 @@ export const DetailGauge = ({
 	lowerValue?: string | number;
 	maxWidth?: number;
 	flexBasis?: number | string;
+	titleAdornment?: React.ReactNode;
+	strokeColor?: string;
 }) => {
 	const theme = useTheme();
 	return (
 		<BaseChart
 			icon={null}
 			title={title}
+			titleAdornment={titleAdornment}
 			maxWidth={maxWidth}
 			flexBasis={flexBasis}
 		>
@@ -147,7 +154,10 @@ export const DetailGauge = ({
 				mb={theme.spacing(4)}
 				gap={theme.spacing(4)}
 			>
-				<Gauge progress={progress} />
+				<Gauge
+					progress={progress}
+					strokeColor={strokeColor}
+				/>
 			</Stack>
 			<Stack
 				direction={"row"}

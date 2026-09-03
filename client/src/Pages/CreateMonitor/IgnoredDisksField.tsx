@@ -3,7 +3,7 @@ import Typography from "@mui/material/Typography";
 import { useTranslation } from "react-i18next";
 import { FormMultiSelectField } from "@/Components/inputs/forms/FormMultiSelectField";
 import type { CheckDiskInfo } from "@/Types/Check";
-import { getDiskIdentifier } from "@/Utils/diskAlert";
+import { getIgnoredDiskStorageId } from "@/Utils/diskAlert";
 import type { MonitorFormData } from "@/Validation/monitor";
 
 interface IgnoredDisksFieldProps {
@@ -16,7 +16,7 @@ export const IgnoredDisksField = ({ disks }: IgnoredDisksFieldProps) => {
 	const options = useMemo(
 		() =>
 			(disks ?? []).map((disk, index) => {
-				const id = getDiskIdentifier(disk, index);
+				const id = getIgnoredDiskStorageId(index);
 				const usage = disk.usage_percent != null ? `${Math.round(disk.usage_percent * 100)}%` : "—";
 				const device = disk.device || t("pages.createMonitor.form.ignoredDisks.unknownDevice");
 				const mountpoint = disk.mountpoint ? ` · ${disk.mountpoint}` : "";

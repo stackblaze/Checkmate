@@ -991,7 +991,8 @@
 				"disk": {
 					"lowerLabel": "Free",
 					"title": "Disk {{idx}} usage",
-					"upperLabel": "Used"
+					"upperLabel": "Used",
+					"alertsSuppressed": "Disk alerts suppressed"
 				},
 				"memory": {
 					"lowerLabel": "Free",

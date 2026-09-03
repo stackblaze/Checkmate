@@ -30,7 +30,10 @@ export const TabOverview = ({
 				checks={checks}
 				dateRange={dateRange}
 			/>
-			<InfraDetailsGauges snapshot={recentChecks[recentChecks.length - 1]} />
+			<InfraDetailsGauges
+				snapshot={recentChecks[recentChecks.length - 1]}
+				monitor={monitor}
+			/>
 			<BandwidthOverviewChart
 				checks={checks}
 				dateRange={dateRange}

@@ -52,6 +52,8 @@ const createGeoChecksRepositoryMock = () =>
 const createIncidentsRepositoryMock = () =>
 	({
 		deleteByMonitorId: jest.fn(),
+		findActiveByMonitorId: jest.fn(),
+		updateById: jest.fn(),
 	}) as unknown as IIncidentsRepository;
 
 const createJobQueueMock = () => ({
@@ -905,6 +907,62 @@ describe("MonitorService", () => {
 			});
 
 			expect(monitorsRepository.updateById).toHaveBeenCalledWith(MONITOR_ID, TEAM_ID, { proxyMode: "inherit" }, { unsetProxyId: true });
+		});
+
+		it("recovers breached hardware monitor when ignored disks clear all breaches", async () => {
+			const monitorsRepository = createMonitorsRepositoryMock();
+			const incidentsRepository = createIncidentsRepositoryMock();
+			const breachedMonitor = makeMonitor({
+				type: "hardware",
+				status: "breached",
+				diskAlertThreshold: 80,
+				cpuAlertThreshold: 90,
+				memoryAlertThreshold: 90,
+				tempAlertThreshold: 100,
+				ignoredDisks: ["index:1"],
+				recentChecks: [
+					{
+						id: "check-1",
+						status: true,
+						responseTime: 1,
+						createdAt: "2026-01-01T00:00:00Z",
+						cpu: { usage_percent: 0.1 },
+						memory: { usage_percent: 0.1 },
+						disk: [
+							{ device: "/dev/sda", usage_percent: 0.2 },
+							{ device: "/dev/sdb", usage_percent: 0.9 },
+						],
+					},
+				],
+			});
+			const recoveredMonitor = { ...breachedMonitor, status: "up" };
+			(monitorsRepository.updateById as jest.Mock)
+				.mockResolvedValueOnce(breachedMonitor)
+				.mockResolvedValueOnce(recoveredMonitor);
+			(incidentsRepository.findActiveByMonitorId as jest.Mock).mockResolvedValue({
+				id: "incident-1",
+				statusCode: 9999,
+				status: true,
+			});
+			const { service, jobQueue } = createService({ monitorsRepository, incidentsRepository });
+
+			const result = await service.editMonitor({
+				teamId: TEAM_ID,
+				monitorId: MONITOR_ID,
+				body: { ignoredDisks: ["index:1"] },
+			});
+
+			expect(monitorsRepository.updateById).toHaveBeenCalledTimes(2);
+			expect(monitorsRepository.updateById).toHaveBeenLastCalledWith(MONITOR_ID, TEAM_ID, {
+				status: "up",
+				cpuAlertCounter: 5,
+				memoryAlertCounter: 5,
+				diskAlertCounter: 5,
+				tempAlertCounter: 5,
+			});
+			expect(incidentsRepository.updateById).toHaveBeenCalled();
+			expect(jobQueue.updateJob).toHaveBeenCalledWith(recoveredMonitor);
+			expect(result.status).toBe("up");
 		});
 	});
 

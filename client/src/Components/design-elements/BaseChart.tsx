@@ -10,6 +10,7 @@ import { useTheme } from "@mui/material/styles";
 type BaseChartProps = React.PropsWithChildren<{
 	icon?: React.ReactNode;
 	title: string;
+	titleAdornment?: React.ReactNode;
 	width?: number | string;
 	maxWidth?: number | string;
 	flexBasis?: number | string;
@@ -20,6 +21,7 @@ type BaseChartProps = React.PropsWithChildren<{
 export const BaseChart = ({
 	children,
 	title,
+	titleAdornment,
 	width = "100%",
 	maxWidth = "100%",
 	flexBasis = "0%",
@@ -47,13 +49,21 @@ export const BaseChart = ({
 				gap={theme.spacing(LAYOUT.MD)}
 				flex={1}
 			>
+			<Stack
+				direction="row"
+				alignItems="flex-start"
+				justifyContent="space-between"
+				gap={theme.spacing(2)}
+			>
 				<Typography
 					variant="eyebrow"
 					color="text.secondary"
-					sx={{ overflowWrap: "anywhere" }}
+					sx={{ overflowWrap: "anywhere", flex: 1 }}
 				>
 					{title}
 				</Typography>
+				{titleAdornment}
+			</Stack>
 				<Box flex={1}>{children}</Box>
 			</Stack>
 		</BaseBox>

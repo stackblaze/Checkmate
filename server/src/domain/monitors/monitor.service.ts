@@ -1,4 +1,9 @@
 import { type Monitor } from "@/domain/monitors/monitor.type.js";
+import {
+	allHardwareBreachesClear,
+	evaluateHardwareBreaches,
+	metricsFromCheckSnapshot,
+} from "@/domain/monitors/hardware-breach.utils.js";
 import type {
 	MonitorType,
 	MonitorsWithChecksByTeamIdResult,
@@ -425,9 +430,59 @@ export class MonitorService implements IMonitorService {
 		if (unsetProxyId) {
 			delete body.proxyId;
 		}
-		const editedMonitor = await this.monitorsRepository.updateById(monitorId, teamId, body, { unsetProxyId });
+		let editedMonitor = await this.monitorsRepository.updateById(monitorId, teamId, body, { unsetProxyId });
+
+		if (editedMonitor.type === "hardware" && body.ignoredDisks !== undefined) {
+			editedMonitor = await this.reconcileHardwareAfterIgnoredDisksChange(editedMonitor);
+		}
+
 		await this.scheduler.updateJob(editedMonitor);
 		return editedMonitor;
+	};
+
+	private reconcileHardwareAfterIgnoredDisksChange = async (monitor: Monitor): Promise<Monitor> => {
+		if (monitor.status !== "breached") {
+			return monitor;
+		}
+
+		const latestCheck = monitor.recentChecks?.at(-1);
+		if (!latestCheck) {
+			return monitor;
+		}
+
+		const breaches = evaluateHardwareBreaches({
+			metrics: metricsFromCheckSnapshot(latestCheck),
+			thresholds: {
+				cpu: monitor.cpuAlertThreshold,
+				memory: monitor.memoryAlertThreshold,
+				disk: monitor.diskAlertThreshold,
+				temp: monitor.tempAlertThreshold,
+			},
+			ignoredDisks: monitor.ignoredDisks,
+		});
+
+		if (!allHardwareBreachesClear(breaches)) {
+			return monitor;
+		}
+
+		const updatedMonitor = await this.monitorsRepository.updateById(monitor.id, monitor.teamId, {
+			status: "up",
+			cpuAlertCounter: 5,
+			memoryAlertCounter: 5,
+			diskAlertCounter: 5,
+			tempAlertCounter: 5,
+		});
+
+		const activeIncident = await this.incidentsRepository.findActiveByMonitorId(monitor.id, monitor.teamId);
+		if (activeIncident?.statusCode === 9999) {
+			await this.incidentsRepository.updateById(activeIncident.id, monitor.teamId, {
+				status: false,
+				endTime: Date.now().toString(),
+				resolutionType: "automatic",
+			});
+		}
+
+		return updatedMonitor;
 	};
 
 	updateNotifications = async ({
