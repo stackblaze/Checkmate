@@ -1,8 +1,14 @@
 import { BasePage, StatusLabel } from "@/Components/design-elements";
 import { useKubernetesClusters } from "@/Hooks/useKubernetesClusters";
+import { KubernetesStatusBoxes } from "@/Pages/Kubernetes/Components/StatusBoxes";
 import { ClusterMembersTable } from "@/Pages/Kubernetes/Details/Components/ClusterMembersTable";
 import { TenantTable } from "@/Pages/Kubernetes/Monitors/Components/ClustersByRegion";
-import { clusterKindLabelKey, type KubernetesCluster } from "@/Utils/kubernetesClusters";
+import {
+	clusterKindLabelKey,
+	clusterSummary,
+	memberSummary,
+	type KubernetesCluster,
+} from "@/Utils/kubernetesClusters";
 import { SPACING } from "@/Utils/Theme/constants";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -96,6 +102,14 @@ const KubernetesDetails = () => {
 		return parent;
 	}, [tenantId, parent, clusters]);
 
+	const summary = useMemo(() => {
+		if (!cluster) return clusterSummary([]);
+		if (!tenantId && cluster.tenants.length > 0) {
+			return clusterSummary(cluster.tenants);
+		}
+		return memberSummary(cluster.members);
+	}, [cluster, tenantId]);
+
 	const backTo = tenantId && parent
 		? `/kubernetes/${encodeURIComponent(parent.id)}`
 		: cluster?.parentName
@@ -166,6 +180,8 @@ const KubernetesDetails = () => {
 						{" · "}
 						{t(clusterKindLabelKey(cluster.kind))}
 					</Typography>
+
+					<KubernetesStatusBoxes summary={summary} />
 
 					{showTenants && (
 						<Stack gap={theme.spacing(SPACING.SM)}>

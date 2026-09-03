@@ -1,23 +1,16 @@
-import {
-	BasePage,
-	DownStatusBox,
-	EmptyMonitorFallback,
-	UpStatusBox,
-} from "@/Components/design-elements";
+import { BasePage, EmptyMonitorFallback } from "@/Components/design-elements";
 import { HeaderCreate } from "@/Components/common";
 import { TextField } from "@/Components/inputs";
 import { useIsAdmin } from "@/Hooks/useIsAdmin";
 import { useKubernetesClusters } from "@/Hooks/useKubernetesClusters";
+import { KubernetesStatusBoxes } from "@/Pages/Kubernetes/Components/StatusBoxes";
 import { ClusterTable } from "@/Pages/Kubernetes/Monitors/Components/ClustersByRegion";
-import Stack from "@mui/material/Stack";
-import { useTheme } from "@mui/material/styles";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 const KubernetesMonitors = () => {
 	const { t } = useTranslation();
-	const theme = useTheme();
 	const navigate = useNavigate();
 	const isAdmin = useIsAdmin();
 	const { listClusters, summary, isLoading, error } = useKubernetesClusters();
@@ -57,13 +50,7 @@ const KubernetesMonitors = () => {
 				isLoading={isLoading}
 				isAdmin={isAdmin}
 			/>
-			<Stack
-				direction={{ xs: "column", md: "row" }}
-				gap={theme.spacing(8)}
-			>
-				<UpStatusBox n={summary.up} />
-				<DownStatusBox n={summary.down} />
-			</Stack>
+			<KubernetesStatusBoxes summary={summary} />
 			<TextField
 				placeholder={t("pages.kubernetes.filters.search")}
 				value={search}

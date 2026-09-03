@@ -258,11 +258,32 @@ export const clusterKindLabelKey = (kind: ClusterKind): string => {
 	return "pages.kubernetes.kind.standalone";
 };
 
-export const clusterSummary = (clusters: KubernetesCluster[]) => ({
-	total: clusters.length,
-	up: clusters.filter((c) => c.status === "up").length,
-	down: clusters.filter((c) => c.status === "down").length,
-	breached: clusters.filter((c) => c.status === "breached").length,
-	paused: clusters.filter((c) => c.status === "paused").length,
-	initializing: clusters.filter((c) => c.status === "initializing").length,
+export interface StatusCounts {
+	total: number;
+	up: number;
+	down: number;
+	breached: number;
+	paused: number;
+	initializing: number;
+}
+
+export const statusCounts = (statuses: MonitorStatus[]): StatusCounts => ({
+	total: statuses.length,
+	up: statuses.filter((s) => s === "up").length,
+	down: statuses.filter((s) => s === "down").length,
+	breached: statuses.filter((s) => s === "breached").length,
+	paused: statuses.filter((s) => s === "paused").length,
+	initializing: statuses.filter((s) => s === "initializing").length,
 });
+
+export const clusterSummary = (clusters: KubernetesCluster[]): StatusCounts =>
+	statusCounts(clusters.map((c) => c.status));
+
+export const memberSummary = (members: ClusterMember[]): StatusCounts =>
+	statusCounts(
+		members.map((m) =>
+			m.monitor.isActive === false || m.monitor.status === "paused"
+				? "paused"
+				: m.monitor.status
+		)
+	);
