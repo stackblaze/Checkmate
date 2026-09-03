@@ -978,7 +978,8 @@
 					"netBytesRecv": "{{name}} - Bytes Received",
 					"netBytesSent": "{{name}} - Bytes Sent",
 					"loopbackOnlyNotice": "Capture is only seeing container network interfaces, and none of them are carrying real traffic. This is normal when Capture runs inside a container that can only observe its own network namespace — interfaces with host-like names (eth0, ens3) are the container's virtual interfaces, not the host's. Run Capture directly on the host to see real network activity.",
-					"temp": "CPU temperature"
+					"temp": "CPU temperature",
+					"totalBandwidth": "Total bandwidth"
 				}
 			},
 			"gauges": {
@@ -1005,7 +1006,9 @@
 				"cpuPhysical": "CPU (Physical)",
 				"disk": "Disk",
 				"memory": "Memory",
-				"os": "OS"
+				"os": "OS",
+				"bandwidth": "Total bandwidth",
+				"bandwidthWithPeriod": "Total bandwidth ({{period}})"
 			},
 			"table": {
 				"headers": {

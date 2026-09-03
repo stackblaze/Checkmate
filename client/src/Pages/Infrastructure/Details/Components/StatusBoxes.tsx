@@ -4,10 +4,19 @@ import { StatBox } from "@/Components/design-elements";
 import prettyBytes from "pretty-bytes";
 import { useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import type { Monitor } from "@/Types/Monitor";
+import type { HardwareCheckStats, Monitor } from "@/Types/Monitor";
 import { getAvgTemp, getCores, getFrequency, getOsAndPlatform } from "@/Utils/InfraUtils";
+import { computeTotalTransferredBytes, hasBandwidthData } from "@/Utils/bandwidthUtils";
 
-export const StatusBoxes = ({ monitor }: { monitor: Monitor }) => {
+export const StatusBoxes = ({
+	monitor,
+	checks = [],
+	dateRange,
+}: {
+	monitor: Monitor;
+	checks?: HardwareCheckStats[];
+	dateRange?: string;
+}) => {
 	const { t } = useTranslation();
 	const theme = useTheme();
 
@@ -23,6 +32,13 @@ export const StatusBoxes = ({ monitor }: { monitor: Monitor }) => {
 	const diskTotalBytes =
 		latestCheck?.disk?.reduce((acc, disk) => acc + (disk.total_bytes || 0), 0) || 0;
 	const osPlatform = getOsAndPlatform(latestCheck?.host);
+	const totalBandwidthBytes = computeTotalTransferredBytes(checks);
+	const showBandwidth = hasBandwidthData(checks);
+	const bandwidthTitle = dateRange
+		? t("pages.infrastructure.statBoxes.bandwidthWithPeriod", {
+				period: t(`components.headerTimeRange.labels.${dateRange}`),
+			})
+		: t("pages.infrastructure.statBoxes.bandwidth");
 
 	return (
 		<Stack
@@ -58,6 +74,12 @@ export const StatusBoxes = ({ monitor }: { monitor: Monitor }) => {
 				title={t("pages.infrastructure.statBoxes.os")}
 				subtitle={osPlatform || "N/A"}
 			/>
+			{showBandwidth && (
+				<StatBox
+					title={bandwidthTitle}
+					subtitle={prettyBytes(totalBandwidthBytes)}
+				/>
+			)}
 		</Stack>
 	);
 };

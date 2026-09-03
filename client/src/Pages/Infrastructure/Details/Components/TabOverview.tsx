@@ -2,6 +2,7 @@ import Stack from "@mui/material/Stack";
 import { InfraDetailsGauges } from "@/Pages/Infrastructure/Details/Components/Gauges";
 import { StatusBoxes } from "@/Pages/Infrastructure/Details/Components/StatusBoxes";
 import { InfraDetailsCharts } from "@/Pages/Infrastructure/Details/Components/Charts";
+import { BandwidthOverviewChart } from "@/Pages/Infrastructure/Details/Components/BandwidthOverviewChart";
 
 import { useTheme } from "@mui/material";
 import type { HardwareStats, Monitor } from "@/Types/Monitor";
@@ -24,8 +25,16 @@ export const TabOverview = ({
 	const recentChecks = monitor.recentChecks ?? [];
 	return (
 		<Stack gap={theme.spacing(8)}>
-			<StatusBoxes monitor={monitor} />
+			<StatusBoxes
+				monitor={monitor}
+				checks={checks}
+				dateRange={dateRange}
+			/>
 			<InfraDetailsGauges snapshot={recentChecks[recentChecks.length - 1]} />
+			<BandwidthOverviewChart
+				checks={checks}
+				dateRange={dateRange}
+			/>
 			<InfraDetailsCharts
 				checks={checks}
 				dateRange={dateRange}
