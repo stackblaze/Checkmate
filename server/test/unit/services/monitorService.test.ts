@@ -108,6 +108,7 @@ const createService = (
 		monitorStatsRepository: overrides.monitorStatsRepository ?? createMonitorStatsRepositoryMock(),
 		statusPagesRepository: overrides.statusPagesRepository ?? createStatusPagesRepositoryMock(),
 		incidentsRepository: overrides.incidentsRepository ?? createIncidentsRepositoryMock(),
+		notificationsService: overrides.notificationsService as any,
 	});
 	return { service, jobQueue, logger };
 };
@@ -942,12 +943,16 @@ describe("MonitorService", () => {
 				statusCode: 9999,
 				status: true,
 			});
-			const { service, jobQueue } = createService({ monitorsRepository, incidentsRepository });
+			const resolvedIncident = { id: "incident-1", statusCode: 9999, status: false, resolutionType: "automatic" };
+			(incidentsRepository.updateById as jest.Mock).mockResolvedValue(resolvedIncident);
+			const notificationsService = { sendIncidentResolvedNotification: jest.fn(async () => true) };
+			const { service, jobQueue } = createService({ monitorsRepository, incidentsRepository, notificationsService });
 
 			const result = await service.editMonitor({
 				teamId: TEAM_ID,
 				monitorId: MONITOR_ID,
 				body: { ignoredDisks: ["index:1"] },
+				userEmail: "dean@example.com",
 			});
 
 			expect(monitorsRepository.findById).toHaveBeenCalledWith(MONITOR_ID, TEAM_ID);
@@ -966,8 +971,54 @@ describe("MonitorService", () => {
 				{ unsetProxyId: false }
 			);
 			expect(incidentsRepository.updateById).toHaveBeenCalled();
+			expect(notificationsService.sendIncidentResolvedNotification).toHaveBeenCalledWith(
+				recoveredMonitor,
+				resolvedIncident,
+				"dean@example.com",
+				"Ignored disks: index:1",
+				"ignored_disks"
+			);
 			expect(jobQueue.updateJob).toHaveBeenCalledWith(recoveredMonitor);
 			expect(result.status).toBe("up");
+		});
+
+		it("still recovers when the channel notification fails", async () => {
+			const monitorsRepository = createMonitorsRepositoryMock();
+			const incidentsRepository = createIncidentsRepositoryMock();
+			const breachedMonitor = makeMonitor({
+				type: "hardware",
+				status: "breached",
+				diskAlertThreshold: 80,
+				recentChecks: [
+					{
+						status: true,
+						responseTime: 1,
+						createdAt: "2026-01-01T00:00:00Z",
+						cpu: { usage_percent: 0.1 },
+						memory: { usage_percent: 0.1 },
+						disk: [
+							{ device: "/dev/sda", usage_percent: 0.2 },
+							{ device: "/dev/sdb", usage_percent: 0.9 },
+						],
+					},
+				],
+			});
+			const recoveredMonitor = { ...breachedMonitor, status: "up", ignoredDisks: ["index:1"] };
+			(monitorsRepository.findById as jest.Mock).mockResolvedValue(breachedMonitor);
+			(monitorsRepository.updateById as jest.Mock).mockResolvedValue(recoveredMonitor);
+			(incidentsRepository.findActiveByMonitorId as jest.Mock).mockResolvedValue({ id: "incident-1", statusCode: 9999, status: true });
+			(incidentsRepository.updateById as jest.Mock).mockResolvedValue({ id: "incident-1", status: false });
+			const notificationsService = {
+				sendIncidentResolvedNotification: jest.fn(async () => {
+					throw new Error("webhook 404");
+				}),
+			};
+			const { service, logger } = createService({ monitorsRepository, incidentsRepository, notificationsService });
+
+			const result = await service.editMonitor({ teamId: TEAM_ID, monitorId: MONITOR_ID, body: { ignoredDisks: ["index:1"] } });
+
+			expect(result.status).toBe("up");
+			expect(logger.warn).toHaveBeenCalledWith(expect.objectContaining({ method: "notifyIgnoredDisksRecovery" }));
 		});
 	});
 

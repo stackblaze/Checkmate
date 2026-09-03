@@ -821,6 +821,22 @@ describe("NotificationMessageBuilder", () => {
 			expect(msg.metadata).toMatchObject({ teamId: "team-1", notificationReason: "manual_resolve", tagIds: ["tag-east"] });
 		});
 
+		it("words an ignored-disks recovery differently and tags the reason", () => {
+			const msg = builder.buildIncidentResolvedMessage(
+				makeMonitor({ type: "hardware", status: "up" }),
+				incident,
+				"https://app.example.com",
+				"dean@example.com",
+				"Ignored disks: index:2",
+				"ignored_disks"
+			);
+
+			expect(msg.type).toBe("threshold_resolved");
+			expect(msg.content.summary).toContain("cleared after dean@example.com excluded disks");
+			expect(msg.content.details).toEqual(expect.arrayContaining(["Comment: Ignored disks: index:2"]));
+			expect(msg.metadata.notificationReason).toBe("ignored_disks_resolve");
+		});
+
 		it("falls back to monitor_up for non-hardware monitors and 'an operator' without an email", () => {
 			const msg = builder.buildIncidentResolvedMessage(makeMonitor({ type: "http", status: "down" }), incident, "https://app.example.com");
 

@@ -264,7 +264,8 @@ describe("NotificationsService", () => {
 				incident,
 				"https://app.example.com",
 				"dean@example.com",
-				"cleaned disk"
+				"cleaned disk",
+				"manual"
 			);
 			expect(discordProvider.sendMessage).toHaveBeenCalledWith(
 				notification,

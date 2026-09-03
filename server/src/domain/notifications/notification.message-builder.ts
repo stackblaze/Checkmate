@@ -1,5 +1,8 @@
 import type { Monitor } from "@/domain/monitors/monitor.type.js";
 import type { Incident } from "@/domain/incidents/incident.type.js";
+
+/** Who/what closed the incident outside the worker: an operator, or an ignored-disks edit. */
+export type IncidentResolvedVia = "manual" | "ignored_disks";
 import { filterDisksForAlerts } from "@/domain/monitors/disk-alert.utils.js";
 import type { HardwareStatusPayload, MonitorStatusResponse } from "@/types/network.js";
 import type { MonitorActionDecision } from "@/worker/worker.helper.js";
@@ -24,7 +27,8 @@ export interface INotificationMessageBuilder {
 		incident: Incident,
 		clientHost: string,
 		resolvedByEmail?: string | null,
-		comment?: string | null
+		comment?: string | null,
+		resolution?: IncidentResolvedVia
 	): NotificationMessage;
 }
 
@@ -74,10 +78,15 @@ export class NotificationMessageBuilder implements INotificationMessageBuilder {
 		incident: Incident,
 		clientHost: string,
 		resolvedByEmail?: string | null,
-		comment?: string | null
+		comment?: string | null,
+		resolution: IncidentResolvedVia = "manual"
 	): NotificationMessage {
 		const type: NotificationType = monitor.type === "hardware" ? "threshold_resolved" : "monitor_up";
 		const resolver = resolvedByEmail?.trim() || "an operator";
+		const summary =
+			resolution === "ignored_disks"
+				? `Incident on "${monitor.name}" cleared after ${resolver} excluded disks from hardware alerts.`
+				: `Incident on "${monitor.name}" was resolved manually by ${resolver}.`;
 		const details = [`URL: ${monitor.url}`, `Status: ${monitor.status}`, `Type: ${monitor.type}`, `Resolved by: ${resolver}`];
 		if (incident.message) {
 			details.push(`Incident: ${incident.message}`);
@@ -100,7 +109,7 @@ export class NotificationMessageBuilder implements INotificationMessageBuilder {
 			},
 			content: {
 				title: `Incident Resolved: ${monitor.name}`,
-				summary: `Incident on "${monitor.name}" was resolved manually by ${resolver}.`,
+				summary,
 				details,
 				incident: { id: incident.id, url: `${clientHost}/incidents/${incident.id}`, createdAt, resolvedAt: new Date() },
 				timestamp: new Date(),
@@ -108,7 +117,7 @@ export class NotificationMessageBuilder implements INotificationMessageBuilder {
 			clientHost,
 			metadata: {
 				teamId: monitor.teamId,
-				notificationReason: "manual_resolve",
+				notificationReason: resolution === "ignored_disks" ? "ignored_disks_resolve" : "manual_resolve",
 				tagIds: monitor.tags ?? [],
 			},
 		};

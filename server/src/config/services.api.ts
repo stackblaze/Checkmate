@@ -78,6 +78,7 @@ export const buildApi = (shared: SharedServices, jobScheduler: IJobScheduler): A
 		monitorStatsRepository,
 		statusPagesRepository,
 		incidentsRepository,
+		notificationsService: shared.notificationsService,
 	});
 
 	const maintenanceWindowService = new MaintenanceWindowService({

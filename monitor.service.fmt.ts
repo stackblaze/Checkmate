@@ -1,7 +1,5 @@
 import { type Monitor } from "@/domain/monitors/monitor.type.js";
-import {
-	getHardwareRecoveryPatch,
-} from "@/domain/monitors/hardware-breach.utils.js";
+import { getHardwareRecoveryPatch } from "@/domain/monitors/hardware-breach.utils.js";
 import type {
 	MonitorType,
 	MonitorsWithChecksByTeamIdResult,
@@ -451,10 +449,7 @@ export class MonitorService implements IMonitorService {
 
 		if (body.ignoredDisks !== undefined) {
 			const currentMonitor = await this.monitorsRepository.findById(monitorId, teamId);
-			const recoveryPatch = getHardwareRecoveryPatch(
-				{ ...currentMonitor, ignoredDisks: body.ignoredDisks },
-				body.ignoredDisks
-			);
+			const recoveryPatch = getHardwareRecoveryPatch({ ...currentMonitor, ignoredDisks: body.ignoredDisks }, body.ignoredDisks);
 			if (recoveryPatch) {
 				patch = { ...patch, ...recoveryPatch };
 				shouldResolveThresholdIncident = true;

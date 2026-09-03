@@ -9,7 +9,7 @@ import { INotificationProvider } from "@/domain/notifications/providers/INotific
 import type { MonitorActionDecision } from "@/worker/worker.helper.js";
 import type { ISettingsService } from "@/domain/app-settings/app-settings.service.js";
 import { ILogger } from "@/utils/logger.js";
-import type { INotificationMessageBuilder } from "@/domain/notifications/notification.message-builder.js";
+import type { INotificationMessageBuilder, IncidentResolvedVia } from "@/domain/notifications/notification.message-builder.js";
 import type { NotificationChannel } from "@/domain/notifications/notification.type.js";
 
 export type NotificationProviderRegistry = Record<NotificationChannel, INotificationProvider>;
@@ -29,7 +29,8 @@ export interface INotificationsService {
 		monitor: Monitor,
 		incident: Incident,
 		resolvedByEmail?: string | null,
-		comment?: string | null
+		comment?: string | null,
+		resolution?: IncidentResolvedVia
 	) => Promise<boolean>;
 }
 
@@ -133,7 +134,13 @@ export class NotificationsService implements INotificationsService {
 		return succeeded === notifications.length;
 	};
 
-	sendIncidentResolvedNotification = async (monitor: Monitor, incident: Incident, resolvedByEmail?: string | null, comment?: string | null) => {
+	sendIncidentResolvedNotification = async (
+		monitor: Monitor,
+		incident: Incident,
+		resolvedByEmail?: string | null,
+		comment?: string | null,
+		resolution: IncidentResolvedVia = "manual"
+	) => {
 		const notificationIds = monitor.notifications ?? [];
 		if (notificationIds.length === 0) {
 			return true;
@@ -141,7 +148,14 @@ export class NotificationsService implements INotificationsService {
 		const notifications = await this.notificationsRepository.findNotificationsByIds(notificationIds);
 		const settings = this.settingsService.getSettings();
 		const clientHost = settings.clientHost || "Host not defined";
-		const notificationMessage = this.notificationMessageBuilder.buildIncidentResolvedMessage(monitor, incident, clientHost, resolvedByEmail, comment);
+		const notificationMessage = this.notificationMessageBuilder.buildIncidentResolvedMessage(
+			monitor,
+			incident,
+			clientHost,
+			resolvedByEmail,
+			comment,
+			resolution
+		);
 		// Providers only read the message; the status/decision arguments exist for the
 		// worker path's signature. A manual resolve has no check behind it.
 		const syntheticStatus = {
