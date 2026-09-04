@@ -9,6 +9,8 @@ describe("isPublicStatusPageApiPath", () => {
 		expect(isPublicStatusPageApiPath("GET", "/api/v1/status-page/my-status-page?type=uptime")).toBe(true);
 		expect(isPublicStatusPageApiPath("POST", "/api/v1/status-page/stackblaze/subscribe")).toBe(true);
 		expect(isPublicStatusPageApiPath("OPTIONS", "/api/v1/status-page/stackblaze/subscribe")).toBe(true);
+		expect(isPublicStatusPageApiPath("POST", "/api/v1/status-page/stackblaze/unsubscribe")).toBe(true);
+		expect(isPublicStatusPageApiPath("OPTIONS", "/api/v1/status-page/stackblaze/unsubscribe")).toBe(true);
 	});
 
 	it("rejects authenticated and mutating status page routes", () => {

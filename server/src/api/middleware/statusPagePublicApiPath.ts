@@ -7,7 +7,7 @@ export const isPublicStatusPageApiPath = (method: string, path: string): boolean
 
 	const subPath = path.slice(PUBLIC_STATUS_PAGE_API_PREFIX.length).split("?")[0] ?? "";
 	const slug = subPath.replace(/^\//, "");
-	const isSubscribe = /^[A-Za-z0-9_-]+\/subscribe$/.test(slug);
+	const isSubscribe = /^[A-Za-z0-9_-]+\/(un)?subscribe$/.test(slug);
 
 	if (isSubscribe) {
 		return method === "POST" || method === "OPTIONS";

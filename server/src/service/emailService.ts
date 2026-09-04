@@ -80,6 +80,7 @@ export class EmailService implements IEmailService {
 			testEmailTemplate: loadTemplate("testEmailTemplate"),
 			unifiedNotificationTemplate: loadTemplate("unifiedNotification"),
 			statusPageSubscribeTemplate: loadTemplate("statusPageSubscribe"),
+			statusPageUnsubscribeTemplate: loadTemplate("statusPageUnsubscribe"),
 		};
 	};
 

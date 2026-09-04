@@ -28,6 +28,7 @@ export interface IStatusPageService {
 	getPublicStatusPagePayload(statusPage: StatusPage, requesterTeamId: string | undefined, range: StatusPageRange): Promise<PublicStatusPagePayload>;
 	updateStatusPage(id: string, teamId: string, image: Express.Multer.File | undefined, data: Partial<StatusPage>): Promise<StatusPage>;
 	subscribeToStatusPage(url: string, email: string): Promise<void>;
+	unsubscribeFromStatusPage(url: string, email: string): Promise<void>;
 
 	deleteStatusPage(statusPageId: string, teamId: string): Promise<StatusPage>;
 }
@@ -209,12 +210,15 @@ export class StatusPageService implements IStatusPageService {
 			});
 		}
 
-		const statusPageUrl = this.publicStatusPageLink(statusPage);
+		const publicLink = this.publicStatusPageLink(statusPage);
+		const statusPageUrl = `${publicLink}?range=90d`;
+		const unsubscribeUrl = `${publicLink}/unsubscribe?email=${encodeURIComponent(email.trim().toLowerCase())}`;
 		try {
 			await this.twentyCrmService.upsertStatusPageSubscriber({
 				email,
 				companyName: statusPage.companyName,
 				statusPageUrl,
+				unsubscribeUrl,
 			});
 		} catch (error: unknown) {
 			throw new AppError({
@@ -226,7 +230,7 @@ export class StatusPageService implements IStatusPageService {
 			});
 		}
 
-		if (!this.emailService) {
+		if (this.twentyCrmService?.sendsSubscribeEmail() || !this.emailService) {
 			return;
 		}
 
@@ -234,6 +238,7 @@ export class StatusPageService implements IStatusPageService {
 			const html = await this.emailService.buildEmail("statusPageSubscribeTemplate", {
 				companyName: statusPage.companyName,
 				statusPageUrl,
+				unsubscribeUrl,
 				email,
 			});
 			if (!html) {
@@ -245,6 +250,61 @@ export class StatusPageService implements IStatusPageService {
 				message: error instanceof Error ? error.message : "Failed to send status page subscribe email",
 				service: SERVICE_NAME,
 				method: "subscribeToStatusPage",
+			});
+		}
+	};
+
+	unsubscribeFromStatusPage = async (url: string, email: string): Promise<void> => {
+		const statusPage = this.normalizeTheme(await this.statusPagesRepository.findByUrl(url));
+		if (!statusPage.isPublished) {
+			throw new AppError({ message: "Status page not found", status: 404, service: SERVICE_NAME, method: "unsubscribeFromStatusPage" });
+		}
+
+		if (!this.twentyCrmService?.enabled()) {
+			throw new AppError({
+				message: "Subscriptions are temporarily unavailable",
+				status: 503,
+				service: SERVICE_NAME,
+				method: "unsubscribeFromStatusPage",
+			});
+		}
+
+		const statusPageUrl = `${this.publicStatusPageLink(statusPage)}?range=90d`;
+		try {
+			await this.twentyCrmService.removeStatusPageSubscriber({
+				email,
+				companyName: statusPage.companyName,
+				statusPageUrl,
+			});
+		} catch (error: unknown) {
+			throw new AppError({
+				message: "Could not update your subscription. Try again shortly.",
+				status: 502,
+				service: SERVICE_NAME,
+				method: "unsubscribeFromStatusPage",
+				details: { cause: error instanceof Error ? error.message : "Unknown error" },
+			});
+		}
+
+		if (this.twentyCrmService?.sendsUnsubscribeEmail() || !this.emailService) {
+			return;
+		}
+
+		try {
+			const html = await this.emailService.buildEmail("statusPageUnsubscribeTemplate", {
+				companyName: statusPage.companyName,
+				statusPageUrl,
+				email,
+			});
+			if (!html) {
+				throw new Error("Failed to build status page unsubscribe email");
+			}
+			await this.emailService.sendEmail(email, `You've been unsubscribed from ${statusPage.companyName} status updates`, html);
+		} catch (error: unknown) {
+			this.logger?.warn({
+				message: error instanceof Error ? error.message : "Failed to send status page unsubscribe email",
+				service: SERVICE_NAME,
+				method: "unsubscribeFromStatusPage",
 			});
 		}
 	};

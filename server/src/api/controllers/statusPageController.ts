@@ -22,6 +22,7 @@ export interface IStatusPageController {
 	getStatusPagesByTeamId: RequestHandler;
 	deleteStatusPage: RequestHandler;
 	subscribeToStatusPage: RequestHandler;
+	unsubscribeFromStatusPage: RequestHandler;
 }
 
 class StatusPageController implements IStatusPageController {
@@ -148,6 +149,25 @@ class StatusPageController implements IStatusPageController {
 		return res.status(200).json({
 			success: true,
 			msg: "You're subscribed to status updates",
+		});
+	});
+
+	unsubscribeFromStatusPage = catchAsync(async (req: Request, res: Response) => {
+		getStatusPageParamValidation.parse(req.params);
+		const parsed = subscribeStatusPageBodyValidation.safeParse(req.body);
+		if (!parsed.success) {
+			throw new AppError({ message: "Enter a valid email address", status: 400 });
+		}
+		const url = Array.isArray(req.params.url) ? req.params.url[0] : req.params.url;
+		if (!url) {
+			throw new AppError({ message: "Status page URL is required", status: 400 });
+		}
+
+		await this.statusPageService.unsubscribeFromStatusPage(url, parsed.data.email);
+
+		return res.status(200).json({
+			success: true,
+			msg: "You've been unsubscribed from status updates",
 		});
 	});
 }

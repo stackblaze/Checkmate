@@ -15,6 +15,7 @@ export const createStatusPageRoutes = (
 	router.put("/:id", imageUpload.single("logo"), verifyJWT, isAllowed(["admin", "superadmin"]), statusPageController.updateStatusPage);
 	router.get("/resolve", statusPageController.resolveStatusPageByDomain);
 	router.post("/:url/subscribe", statusPageSubscribeLimiter, statusPageController.subscribeToStatusPage);
+	router.post("/:url/unsubscribe", statusPageSubscribeLimiter, statusPageController.unsubscribeFromStatusPage);
 	router.get("/:url", verifyStatusPageAccess, statusPageController.getStatusPageByUrl);
 	router.delete("/:id", verifyJWT, isAllowed(["admin", "superadmin"]), statusPageController.deleteStatusPage);
 	return router;

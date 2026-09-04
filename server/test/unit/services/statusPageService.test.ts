@@ -447,6 +447,7 @@ describe("StatusPageService", () => {
 			};
 			const twentyCrmService = {
 				enabled: jest.fn().mockReturnValue(true),
+				sendsSubscribeEmail: jest.fn().mockReturnValue(false),
 				upsertStatusPageSubscriber: jest.fn().mockResolvedValue({ personId: "person-1" }),
 			};
 			const service = new StatusPageService(
@@ -463,7 +464,8 @@ describe("StatusPageService", () => {
 			expect(twentyCrmService.upsertStatusPageSubscriber).toHaveBeenCalledWith({
 				email: "ada@example.com",
 				companyName: "Stackblaze",
-				statusPageUrl: "http://localhost:5173/status/public/stackblaze",
+				statusPageUrl: "http://localhost:5173/status/public/stackblaze?range=90d",
+				unsubscribeUrl: "http://localhost:5173/status/public/stackblaze/unsubscribe?email=ada%40example.com",
 			});
 			expect(emailService.sendEmail).toHaveBeenCalledWith(
 				"ada@example.com",
@@ -472,11 +474,39 @@ describe("StatusPageService", () => {
 			);
 		});
 
+		it("skips Checkmate mail when Twenty sends the branded workflow email", async () => {
+			const { repo, settingsService, monitorsRepo, checksRepo } = createService();
+			repo.findByUrl.mockResolvedValue(published);
+			const emailService = {
+				buildEmail: jest.fn(),
+				sendEmail: jest.fn(),
+			};
+			const twentyCrmService = {
+				enabled: jest.fn().mockReturnValue(true),
+				sendsSubscribeEmail: jest.fn().mockReturnValue(true),
+				upsertStatusPageSubscriber: jest.fn().mockResolvedValue({ personId: "person-1" }),
+			};
+			const service = new StatusPageService(
+				repo,
+				settingsService,
+				monitorsRepo,
+				checksRepo,
+				emailService as any,
+				twentyCrmService as any
+			);
+
+			await service.subscribeToStatusPage("stackblaze", "ada@example.com");
+
+			expect(twentyCrmService.upsertStatusPageSubscriber).toHaveBeenCalled();
+			expect(emailService.sendEmail).not.toHaveBeenCalled();
+		});
+
 		it("returns 404 for unpublished pages", async () => {
 			const { repo, settingsService, monitorsRepo, checksRepo } = createService();
 			repo.findByUrl.mockResolvedValue(makeStatusPage({ isPublished: false }));
 			const twentyCrmService = {
 				enabled: jest.fn().mockReturnValue(true),
+				sendsSubscribeEmail: jest.fn().mockReturnValue(false),
 				upsertStatusPageSubscriber: jest.fn(),
 			};
 			const service = new StatusPageService(
@@ -499,6 +529,7 @@ describe("StatusPageService", () => {
 			repo.findByUrl.mockResolvedValue(published);
 			const twentyCrmService = {
 				enabled: jest.fn().mockReturnValue(false),
+				sendsSubscribeEmail: jest.fn().mockReturnValue(false),
 				upsertStatusPageSubscriber: jest.fn(),
 			};
 			const service = new StatusPageService(
@@ -513,6 +544,95 @@ describe("StatusPageService", () => {
 			await expect(service.subscribeToStatusPage("stackblaze", "ada@example.com")).rejects.toMatchObject({
 				status: 503,
 			});
+		});
+	});
+
+	describe("unsubscribeFromStatusPage", () => {
+		const published = makeStatusPage({ isPublished: true, companyName: "Stackblaze", url: "stackblaze" });
+
+		it("removes the subscriber in Twenty and sends confirmation", async () => {
+			const { repo, settingsService, monitorsRepo, checksRepo } = createService();
+			repo.findByUrl.mockResolvedValue(published);
+			const emailService = {
+				buildEmail: jest.fn().mockResolvedValue("<html>ok</html>"),
+				sendEmail: jest.fn().mockResolvedValue("msg-1"),
+			};
+			const twentyCrmService = {
+				enabled: jest.fn().mockReturnValue(true),
+				sendsUnsubscribeEmail: jest.fn().mockReturnValue(false),
+				removeStatusPageSubscriber: jest.fn().mockResolvedValue({ personId: "person-1" }),
+			};
+			const service = new StatusPageService(
+				repo,
+				settingsService,
+				monitorsRepo,
+				checksRepo,
+				emailService as any,
+				twentyCrmService as any
+			);
+
+			await service.unsubscribeFromStatusPage("stackblaze", "ada@example.com");
+
+			expect(twentyCrmService.removeStatusPageSubscriber).toHaveBeenCalledWith({
+				email: "ada@example.com",
+				companyName: "Stackblaze",
+				statusPageUrl: "http://localhost:5173/status/public/stackblaze?range=90d",
+			});
+			expect(emailService.sendEmail).toHaveBeenCalledWith(
+				"ada@example.com",
+				"You've been unsubscribed from Stackblaze status updates",
+				"<html>ok</html>"
+			);
+		});
+
+		it("skips Checkmate mail when Twenty sends the branded workflow email", async () => {
+			const { repo, settingsService, monitorsRepo, checksRepo } = createService();
+			repo.findByUrl.mockResolvedValue(published);
+			const emailService = {
+				buildEmail: jest.fn(),
+				sendEmail: jest.fn(),
+			};
+			const twentyCrmService = {
+				enabled: jest.fn().mockReturnValue(true),
+				sendsUnsubscribeEmail: jest.fn().mockReturnValue(true),
+				removeStatusPageSubscriber: jest.fn().mockResolvedValue({ personId: "person-1" }),
+			};
+			const service = new StatusPageService(
+				repo,
+				settingsService,
+				monitorsRepo,
+				checksRepo,
+				emailService as any,
+				twentyCrmService as any
+			);
+
+			await service.unsubscribeFromStatusPage("stackblaze", "ada@example.com");
+
+			expect(twentyCrmService.removeStatusPageSubscriber).toHaveBeenCalled();
+			expect(emailService.sendEmail).not.toHaveBeenCalled();
+		});
+
+		it("returns 404 for unpublished pages", async () => {
+			const { repo, settingsService, monitorsRepo, checksRepo } = createService();
+			repo.findByUrl.mockResolvedValue(makeStatusPage({ isPublished: false }));
+			const twentyCrmService = {
+				enabled: jest.fn().mockReturnValue(true),
+				sendsUnsubscribeEmail: jest.fn().mockReturnValue(false),
+				removeStatusPageSubscriber: jest.fn(),
+			};
+			const service = new StatusPageService(
+				repo,
+				settingsService,
+				monitorsRepo,
+				checksRepo,
+				undefined,
+				twentyCrmService as any
+			);
+
+			await expect(service.unsubscribeFromStatusPage("stackblaze", "ada@example.com")).rejects.toMatchObject({
+				status: 404,
+			});
+			expect(twentyCrmService.removeStatusPageSubscriber).not.toHaveBeenCalled();
 		});
 	});
 });

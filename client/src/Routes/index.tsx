@@ -39,6 +39,7 @@ import Incidents from "@/Pages/Incidents";
 import CreateStatus from "@/Pages/StatusPage/Create/";
 import StatusPages from "@/Pages/StatusPage/StatusPages";
 import Status from "@/Pages/StatusPage/Status";
+import { StackblazeUnsubscribePage } from "@/Pages/StatusPage/Status/themes/stackblaze/StackblazeUnsubscribePage";
 
 // Notifications
 import Notifications from "@/Pages/Notifications";
@@ -326,6 +327,10 @@ const Routes = () => {
 			<Route
 				path="/set-new-password/:token"
 				element={<AuthSetNewPassword />}
+			/>
+			<Route
+				path="/status/public/:url/unsubscribe"
+				element={<StackblazeUnsubscribePage />}
 			/>
 			<Route
 				path="/status/public/:url"

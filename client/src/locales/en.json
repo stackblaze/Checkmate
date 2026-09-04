@@ -1775,6 +1775,17 @@
 					"cancel": "Cancel",
 					"close": "Close"
 				},
+				"unsubscribeForm": {
+					"title": "Unsubscribe from updates",
+					"doneTitle": "You've been unsubscribed",
+					"help": "Confirm your email to stop receiving incident updates from this status page.",
+					"confirm": "Unsubscribe",
+					"submitting": "Unsubscribing…",
+					"success": "You're unsubscribed. You won't get incident emails from this status page anymore.",
+					"error": "Could not unsubscribe. Try again shortly.",
+					"cancel": "Cancel",
+					"back": "View status page"
+				},
 				"noData": "No downtime recorded",
 				"allOperational": "All Systems Operational",
 				"uptimeCaption": "Uptime over the past 90 days.",
