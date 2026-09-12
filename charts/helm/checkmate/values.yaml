@@ -102,6 +102,11 @@ secrets:
   NODE_ENV: production
   LOG_LEVEL: info
   TOKEN_TTL: 99d
+  # Status page Subscribe writes to Listmonk when these are set.
+  # LISTMONK_URL: https://news.stackblaze.cloud
+  # LISTMONK_API_USER: changelog-web
+  # LISTMONK_API_TOKEN: ""
+  # LISTMONK_STATUS_LIST_ID: "4"
 
 persistence:
   mongo:

@@ -8,6 +8,7 @@ import { IUserService, UserService } from "@/domain/users/user.service.js";
 import { IJobScheduler } from "@/worker/worker.interface.js";
 import { ProxiesService, IProxiesService } from "@/domain/proxies/proxy.service.js";
 import { SharedServices } from "@/config/services.shared.js";
+import { ListmonkService } from "@/service/listmonkService.js";
 import { TwentyCrmService } from "@/service/twentyCrmService.js";
 
 // Third-party
@@ -95,14 +96,16 @@ export const buildApi = (shared: SharedServices, jobScheduler: IJobScheduler): A
 		emailService,
 	});
 
+	const listmonkService = new ListmonkService(logger);
 	const twentyCrmService = new TwentyCrmService(logger);
+	const statusSubscriber = listmonkService.enabled() ? listmonkService : twentyCrmService;
 	const statusPageService = new StatusPageService(
 		statusPagesRepository,
 		settingsService,
 		monitorsRepository,
 		checksRepository,
 		emailService,
-		twentyCrmService,
+		statusSubscriber,
 		logger
 	);
 	const tagsService = new TagsService(tagsRepository, monitorsRepository);
